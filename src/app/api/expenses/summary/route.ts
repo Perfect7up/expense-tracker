@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/app/core/lib/supabase/server";
 import prisma from "@/app/core/lib/prisma";
-import { Expense } from "@prisma/client"; // Import Prisma Expense type
 
 // --- Helper: Get or Create DB User ---
 async function getDbUser(authUser: { id: string; email?: string }) {
@@ -43,7 +42,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 5. Fetch expenses in date range
-    const expenses: Expense[] = await prisma.expense.findMany({
+    const expenses = await prisma.expense.findMany({
       where: {
         userId: dbUser.id,
         occurredAt: {
@@ -57,7 +56,7 @@ export async function GET(request: NextRequest) {
     // 6. Group by period
     const groupedData: Record<string, { amount: number; count: number }> = {};
 
-    expenses.forEach((expense: Expense) => {
+    expenses.forEach((expense) => {
       const date = new Date(expense.occurredAt);
       let periodKey: string;
 
