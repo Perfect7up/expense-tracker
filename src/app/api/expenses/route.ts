@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/app/core/lib/supabase/server";
 import prisma from "@/app/core/lib/prisma";
 import { z } from "zod";
+import { Expense, Category } from "@prisma/client";
 
 // --- Validation Schema ---
 const createExpenseSchema = z.object({
@@ -36,11 +37,13 @@ export async function GET() {
       include: { category: true },
     });
 
-    const formattedExpenses = expenses.map((e) => ({
-      ...e,
-      amount: Number(e.amount),
-      categoryName: e.category?.name || "Uncategorized",
-    }));
+    const formattedExpenses = expenses.map(
+      (e: Expense & { category: Category | null }) => ({
+        ...e,
+        amount: Number(e.amount),
+        categoryName: e.category?.name || "Uncategorized",
+      })
+    );
 
     return NextResponse.json(formattedExpenses);
   } catch (error) {
