@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
     // 6. Group by period
     const groupedData: Record<string, { amount: number; count: number }> = {};
 
-    expenses.forEach((expense) => {
+    expenses.forEach((expense: (typeof expenses)[number]) => {
       const date = new Date(expense.occurredAt);
       let periodKey: string;
 
