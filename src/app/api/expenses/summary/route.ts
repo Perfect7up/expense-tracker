@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
       startDate = new Date(now.getFullYear(), now.getMonth() - limit + 1, 1);
     }
 
-    // 5. Fetch expenses in date range
+    // 5. Fetch expenses in date range (TypeScript infers type automatically)
     const expenses = await prisma.expense.findMany({
       where: {
         userId: dbUser.id,
@@ -63,7 +63,6 @@ export async function GET(request: NextRequest) {
       if (period === "year") {
         periodKey = date.getFullYear().toString();
       } else {
-        // Group by year-month
         periodKey = `${date.getFullYear()}-${(date.getMonth() + 1)
           .toString()
           .padStart(2, "0")}`;
