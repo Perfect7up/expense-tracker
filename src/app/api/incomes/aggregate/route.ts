@@ -75,21 +75,23 @@ export async function GET(request: NextRequest) {
         // REMOVED INVALID ORDER BY HERE
       });
 
-      const result = monthlyIncomes.map((item) => ({
-        currency: item.currency,
-        categoryId: item.categoryId,
-        source: item.source,
-        totalAmount: Number(item._sum.amount || 0),
-        incomeCount: item._count.id,
-        period: `${year || "all"}-${month || "all"}`,
-        periodDisplay: month
-          ? new Date(
-              parseInt(year || "0"),
-              parseInt(month) - 1,
-              1
-            ).toLocaleDateString("en-US", { month: "short", year: "numeric" })
-          : year || "All Time",
-      }));
+      const result = monthlyIncomes.map(
+        (item: (typeof monthlyIncomes)[number]) => ({
+          currency: item.currency,
+          categoryId: item.categoryId,
+          source: item.source,
+          totalAmount: Number(item._sum.amount || 0),
+          incomeCount: item._count.id,
+          period: `${year || "all"}-${month || "all"}`,
+          periodDisplay: month
+            ? new Date(
+                parseInt(year || "0"),
+                parseInt(month) - 1,
+                1
+              ).toLocaleDateString("en-US", { month: "short", year: "numeric" })
+            : year || "All Time",
+        })
+      );
 
       return NextResponse.json(result);
     } else if (period === "yearly") {
