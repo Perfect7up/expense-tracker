@@ -58,11 +58,10 @@ export async function GET(request: NextRequest) {
     }
 
     // 5. Fetch Categories
-    let categories;
-
+    // FIX: Handle the two branches separately to preserve TypeScript types
     if (includeCounts) {
       // Fetch categories with expense and income counts
-      categories = await prisma.category.findMany({
+      const rawCategories = await prisma.category.findMany({
         where: whereClause,
         orderBy: { name: "asc" },
         include: {
@@ -76,18 +75,21 @@ export async function GET(request: NextRequest) {
       });
 
       // Format the response
-      categories = categories.map((category) => ({
+      const formattedCategories = rawCategories.map((category) => ({
         ...category,
         expenseCount: category._count.expenses,
         incomeCount: category._count.incomes,
         _count: undefined,
       }));
-    } else {
-      categories = await prisma.category.findMany({
-        where: whereClause,
-        orderBy: { name: "asc" },
-      });
+
+      return NextResponse.json(formattedCategories);
     }
+
+    // Default fetch without counts
+    const categories = await prisma.category.findMany({
+      where: whereClause,
+      orderBy: { name: "asc" },
+    });
 
     return NextResponse.json(categories);
   } catch (error) {
