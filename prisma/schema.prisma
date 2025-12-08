@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+}
+
+model User {
+  id          String     @id @default(uuid())
+  email       String     @unique
+  createdAt   DateTime   @default(now())
+  supabaseId  String?    @unique
+
+  categories  Category[]
+  expenses    Expense[]
+  incomes     Income[]
+}
+
+model Category {
+  id        String       @id @default(uuid())
+  name      String
+  type      CategoryType
+
+  userId    String?
+  user      User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  expenses  Expense[]
+  incomes   Income[]
+
+  createdAt DateTime     @default(now())
+
+  @@index([userId])
+}
+
+enum CategoryType {
+  EXPENSE
+  INCOME
+}
+
+model Expense {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  amount      Decimal   @db.Decimal(12, 2)
+  currency    String    @default("USD")
+  note        String?
+  occurredAt  DateTime
+  createdAt   DateTime  @default(now())
+
+  @@index([userId, occurredAt])
+}
+
+model Income {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  amount      Decimal   @db.Decimal(12, 2)
+  currency    String    @default("USD")
+  source      String?
+  note        String?
+  receivedAt  DateTime
+  createdAt   DateTime  @default(now())
+
+  @@index([userId, receivedAt])
+}
