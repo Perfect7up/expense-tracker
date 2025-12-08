@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/app/core/lib/supabase/server";
 import prisma from "@/app/core/lib/prisma";
+import { Expense } from "@prisma/client"; // Import Prisma Expense type
 
 // --- Helper: Get or Create DB User ---
 async function getDbUser(authUser: { id: string; email?: string }) {
@@ -36,15 +37,13 @@ export async function GET(request: NextRequest) {
     let startDate: Date;
 
     if (period === "year") {
-      // Get expenses for the last N years
       startDate = new Date(now.getFullYear() - limit + 1, 0, 1);
     } else {
-      // Get expenses for the last N months
       startDate = new Date(now.getFullYear(), now.getMonth() - limit + 1, 1);
     }
 
     // 5. Fetch expenses in date range
-    const expenses = await prisma.expense.findMany({
+    const expenses: Expense[] = await prisma.expense.findMany({
       where: {
         userId: dbUser.id,
         occurredAt: {
@@ -58,7 +57,7 @@ export async function GET(request: NextRequest) {
     // 6. Group by period
     const groupedData: Record<string, { amount: number; count: number }> = {};
 
-    expenses.forEach((expense) => {
+    expenses.forEach((expense: Expense) => {
       const date = new Date(expense.occurredAt);
       let periodKey: string;
 
@@ -66,7 +65,9 @@ export async function GET(request: NextRequest) {
         periodKey = date.getFullYear().toString();
       } else {
         // Group by year-month
-        periodKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}`;
+        periodKey = `${date.getFullYear()}-${(date.getMonth() + 1)
+          .toString()
+          .padStart(2, "0")}`;
       }
 
       if (!groupedData[periodKey]) {
