@@ -3,7 +3,8 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
+  // Use 'any' to avoid type errors when PrismaClient is not found
+  prisma: any;
   pool: Pool | undefined;
 };
 
