@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/app/core/lib/supabase/server";
 import prisma from "@/app/core/lib/prisma";
 
@@ -15,7 +15,8 @@ async function getDbUser(authUser: { id: string; email?: string }) {
 }
 
 // --- GET Handler for Income Statistics ---
-export async function GET(request: NextRequest) {
+export async function GET() {
+  // Removed unused 'request' parameter
   try {
     // 1. Get User Context
     const authUser = await getAuthenticatedUser();
@@ -98,18 +99,18 @@ export async function GET(request: NextRequest) {
 
     // Group by month to calculate average
     const monthlyTotals = allIncomes.reduce(
-      (acc: { [key: string]: number }, income) => {
+      (acc: Record<string, number>, income) => {
         const date = new Date(income.receivedAt);
-        const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+        const monthKey = `${date.getFullYear()}-${date.getMonth() + 1}`;
         acc[monthKey] = (acc[monthKey] || 0) + Number(income.amount);
         return acc;
       },
-      {}
+      {} as Record<string, number>
     );
 
     const totalMonths = Object.keys(monthlyTotals).length;
     const totalAmount = Object.values(monthlyTotals).reduce(
-      (sum: number, amount) => sum + amount,
+      (sum: number, amount: number) => sum + amount,
       0
     );
     const averagePerMonth = totalMonths > 0 ? totalAmount / totalMonths : 0;
