@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
 
       // Sort by total amount (descending) after fetching
       const sortedIncomes = monthlyIncomes.sort(
-        (a, b) => Number(b._sum.amount || 0) - Number(a._sum.amount || 0)
+        (a, b) => Number(b._sum.amount ?? 0) - Number(a._sum.amount ?? 0)
       );
 
       result = sortedIncomes.map((item) => ({
@@ -128,7 +128,7 @@ export async function GET(request: NextRequest) {
 
       // Sort by total amount (descending) after fetching
       const sortedIncomes = yearlyIncomes.sort(
-        (a, b) => Number(b._sum.amount || 0) - Number(a._sum.amount || 0)
+        (a, b) => Number(b._sum.amount ?? 0) - Number(a._sum.amount ?? 0)
       );
 
       result = sortedIncomes.map((item) => ({
@@ -143,7 +143,6 @@ export async function GET(request: NextRequest) {
     }
 
     // 7. Optionally, fetch category details if needed
-    // This can be added if you want to include category names in the response
     if (result.length > 0) {
       const categoryIds = [
         ...new Set(result.map((item) => item.categoryId).filter(Boolean)),
