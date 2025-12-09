@@ -1,6 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { Category, CategoryType } from "@prisma/client";
+
+// --- Fix: Define types locally since they are missing from Prisma Client ---
+export type CategoryType = "EXPENSE" | "INCOME";
+
+export interface Category {
+  id: string;
+  name: string;
+  type: CategoryType;
+  userId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+// -------------------------------------------------------------------------
 
 // Types
 export interface CategoryWithCounts extends Category {
