@@ -37,8 +37,12 @@ export async function GET() {
       include: { category: true }, // Include related data if needed
     });
 
+    type IncomeWithCategory = (typeof incomes)[number];
     return NextResponse.json(
-      incomes.map((i) => ({ ...i, amount: Number(i.amount) }))
+      incomes.map((i: IncomeWithCategory) => ({
+        ...i,
+        amount: Number(i.amount),
+      }))
     );
   } catch (error) {
     console.error("GET Income Error:", error);
