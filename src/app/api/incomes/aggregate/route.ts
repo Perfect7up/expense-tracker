@@ -93,9 +93,11 @@ export async function GET(request: NextRequest) {
       });
 
       // Sort by total amount (descending) after fetching
-      const sortedIncomes = monthlyIncomes.sort(
-        (a, b) => Number(b._sum.amount ?? 0) - Number(a._sum.amount ?? 0)
-      );
+      const sortedIncomes = [...monthlyIncomes].sort((a, b) => {
+        const amountA = Number(a._sum.amount || 0);
+        const amountB = Number(b._sum.amount || 0);
+        return amountB - amountA;
+      });
 
       result = sortedIncomes.map((item) => ({
         currency: item.currency,
@@ -127,9 +129,11 @@ export async function GET(request: NextRequest) {
       });
 
       // Sort by total amount (descending) after fetching
-      const sortedIncomes = yearlyIncomes.sort(
-        (a, b) => Number(b._sum.amount ?? 0) - Number(a._sum.amount ?? 0)
-      );
+      const sortedIncomes = [...yearlyIncomes].sort((a, b) => {
+        const amountA = Number(a._sum.amount || 0);
+        const amountB = Number(b._sum.amount || 0);
+        return amountB - amountA;
+      });
 
       result = sortedIncomes.map((item) => ({
         currency: item.currency,
@@ -143,6 +147,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 7. Optionally, fetch category details if needed
+    // This can be added if you want to include category names in the response
     if (result.length > 0) {
       const categoryIds = [
         ...new Set(result.map((item) => item.categoryId).filter(Boolean)),
