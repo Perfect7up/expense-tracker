@@ -109,7 +109,7 @@ export async function GET() {
 
     const totalMonths = Object.keys(monthlyTotals).length;
     const totalAmount = Object.values(monthlyTotals).reduce<number>(
-      (sum, amount) => sum + amount,
+      (sum, amount: number) => sum + amount,
       0
     );
     const averagePerMonth = totalMonths > 0 ? totalAmount / totalMonths : 0;
