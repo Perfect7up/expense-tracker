@@ -2,11 +2,7 @@
 
 import { useState } from "react";
 import { useIncomes } from "@/app/core/hooks/use-income";
-import {
-  useIncomeCategories,
-  useCreateDefaultCategories,
-  DEFAULT_INCOME_CATEGORIES,
-} from "@/app/core/hooks/use-categories";
+import { useIncomeCategories } from "@/app/core/hooks/use-categories";
 import { Button } from "@/app/core/components/ui/button";
 import { Input } from "@/app/core/components/ui/input";
 import { Textarea } from "@/app/core/components/ui/textarea";
@@ -26,9 +22,8 @@ interface AddIncomeFormProps {
 
 export function AddIncomeForm({ onSuccess }: AddIncomeFormProps) {
   const { createIncome } = useIncomes();
-  const { data: categories, isLoading: isLoadingCategories } =
-    useIncomeCategories();
-  const createDefaults = useCreateDefaultCategories();
+  // New hook returns static data instantly
+  const { data: categories } = useIncomeCategories();
 
   // Format date for datetime-local input
   const formatDateForInput = (date: Date) => {
@@ -48,45 +43,9 @@ export function AddIncomeForm({ onSuccess }: AddIncomeFormProps) {
     receivedAt: formatDateForInput(new Date()),
   });
 
-  const isCategoryListEmpty = !isLoadingCategories && categories?.length === 0;
-
-  // Intelligent Category Selection Handler
-  const handleCategoryChange = async (value: string) => {
-    // A. Handle standard "No Category" or "Uncategorized"
-    if (value === "none" || value === "uncategorized") {
-      setFormData((prev) => ({ ...prev, categoryId: value }));
-      return;
-    }
-
-    // B. If categories ALREADY exist, value is a UUID. Set it normally.
-    if (categories && categories.length > 0) {
-      setFormData((prev) => ({ ...prev, categoryId: value }));
-      return;
-    }
-
-    // C. If categories are EMPTY, 'value' is a NAME (e.g. "Salary").
-    // We must create defaults first, then select the new UUID.
-    try {
-      const toastId = toast.loading(`Initializing ${value} category...`);
-
-      // 1. Create categories in the backend
-      const newCategories: any[] = await createDefaults.mutateAsync("INCOME");
-
-      // 2. Find the category that matches the name the user clicked
-      const matchingCategory = newCategories?.find((cat) => cat.name === value);
-
-      if (matchingCategory) {
-        setFormData((prev) => ({ ...prev, categoryId: matchingCategory.id }));
-        toast.success("Categories initialized and selected!", { id: toastId });
-      } else {
-        // Fallback
-        setFormData((prev) => ({ ...prev, categoryId: "none" }));
-        toast.dismiss(toastId);
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to initialize categories");
-    }
+  // Simple Category Handler
+  const handleCategoryChange = (value: string) => {
+    setFormData((prev) => ({ ...prev, categoryId: value }));
   };
 
   const handleChange = (
@@ -121,8 +80,12 @@ export function AddIncomeForm({ onSuccess }: AddIncomeFormProps) {
       receivedAt: new Date(formData.receivedAt).toISOString(),
       ...(formData.source && { source: formData.source }),
       ...(formData.note && { note: formData.note }),
+      // Only send categoryId if it's not "none" or "uncategorized"
       ...(formData.categoryId &&
-        formData.categoryId !== "none" && { categoryId: formData.categoryId }),
+      formData.categoryId !== "none" &&
+      formData.categoryId !== "uncategorized"
+        ? { categoryId: formData.categoryId }
+        : {}),
     };
 
     try {
@@ -192,49 +155,24 @@ export function AddIncomeForm({ onSuccess }: AddIncomeFormProps) {
           Category
         </label>
 
-        {isLoadingCategories ? (
-          <div className="flex items-center space-x-2 p-2 border rounded-md">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="text-sm text-muted-foreground">Loading...</span>
-          </div>
-        ) : (
-          <Select
-            value={formData.categoryId || ""}
-            onValueChange={handleCategoryChange}
-            disabled={createDefaults.isPending}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">No category</SelectItem>
-              <SelectItem value="uncategorized">-- Uncategorized --</SelectItem>
+        <Select
+          value={formData.categoryId || ""}
+          onValueChange={handleCategoryChange}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">No category</SelectItem>
+            <SelectItem value="uncategorized">-- Uncategorized --</SelectItem>
 
-              {/* 
-                  LOGIC: 
-                  If categories exist, show them (value = ID).
-                  If NO categories exist, show defaults (value = Name).
-              */}
-              {!isCategoryListEmpty
-                ? categories!.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </SelectItem>
-                  ))
-                : DEFAULT_INCOME_CATEGORIES.map((name) => (
-                    <SelectItem key={name} value={name}>
-                      {name}
-                    </SelectItem>
-                  ))}
-            </SelectContent>
-          </Select>
-        )}
-        {/* Helper text for empty state */}
-        {isCategoryListEmpty && (
-          <p className="text-[10px] text-muted-foreground pt-1">
-            * Selecting a category will automatically add it to your settings.
-          </p>
-        )}
+            {categories?.map((cat) => (
+              <SelectItem key={cat.id} value={cat.id}>
+                {cat.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Note */}
@@ -270,7 +208,7 @@ export function AddIncomeForm({ onSuccess }: AddIncomeFormProps) {
       {/* Submit Button */}
       <Button
         type="submit"
-        disabled={createIncome.isPending || createDefaults.isPending}
+        disabled={createIncome.isPending}
         className="w-full bg-green-600 hover:bg-green-700 mt-4"
       >
         {createIncome.isPending ? (

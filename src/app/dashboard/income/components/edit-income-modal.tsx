@@ -1,15 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useForm, useWatch } from "react-hook-form"; // 1. Added useWatch
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { updateIncomeSchema } from "@/app/core/schema/income";
 import { useIncomes } from "@/app/core/hooks/use-income";
-import {
-  useIncomeCategories,
-  useCreateDefaultCategories,
-  DEFAULT_INCOME_CATEGORIES,
-} from "@/app/core/hooks/use-categories";
+import { useIncomeCategories } from "@/app/core/hooks/use-categories";
 
 import { Input } from "@/app/core/components/ui/input";
 import { Button } from "@/app/core/components/ui/button";
@@ -30,7 +26,7 @@ import {
   SelectValue,
 } from "@/app/core/components/ui/select";
 import { Label } from "@/app/core/components/ui/label";
-import { Pencil, Trash2, Save, AlertCircle, Loader2 } from "lucide-react";
+import { Pencil, Trash2, Save, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 interface EditIncomeModalProps {
@@ -41,9 +37,9 @@ export function EditIncomeModal({ income }: EditIncomeModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { updateIncome, deleteIncome } = useIncomes();
-  const { data: categories, isLoading: isLoadingCategories } =
-    useIncomeCategories();
-  const createDefaults = useCreateDefaultCategories();
+
+  // New hook returns static data instantly
+  const { data: categories } = useIncomeCategories();
 
   const form = useForm({
     resolver: zodResolver(updateIncomeSchema),
@@ -58,48 +54,15 @@ export function EditIncomeModal({ income }: EditIncomeModalProps) {
     },
   });
 
-  // 2. Setup Watcher (Fixes React Compiler Error)
+  // Setup Watcher
   const watchedCategoryId = useWatch({
     control: form.control,
     name: "categoryId",
   });
 
-  // 3. Intelligent Category Selection Handler
-  const handleCategoryChange = async (value: string) => {
-    // A. Handle standard "No Category" or "Uncategorized"
-    if (value === "none" || value === "uncategorized") {
-      form.setValue("categoryId", value);
-      return;
-    }
-
-    // B. If categories ALREADY exist, value is a UUID. Set it normally.
-    if (categories && categories.length > 0) {
-      form.setValue("categoryId", value);
-      return;
-    }
-
-    // C. If categories are EMPTY, 'value' is a NAME (e.g. "Salary").
-    // We must create defaults first, then select the new UUID.
-    try {
-      const toastId = toast.loading(`Initializing ${value} category...`);
-
-      // 1. Create categories in the backend
-      const newCategories: any[] = await createDefaults.mutateAsync("INCOME");
-
-      // 2. Find the category that matches the name the user clicked
-      const matchingCategory = newCategories?.find((cat) => cat.name === value);
-
-      if (matchingCategory) {
-        form.setValue("categoryId", matchingCategory.id);
-        toast.success("Categories initialized and selected!", { id: toastId });
-      } else {
-        form.setValue("categoryId", "none");
-        toast.dismiss(toastId);
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to initialize categories");
-    }
+  // Simple Handler
+  const handleCategoryChange = (value: string) => {
+    form.setValue("categoryId", value);
   };
 
   const handleSubmit = async (data: any) => {
@@ -139,8 +102,6 @@ export function EditIncomeModal({ income }: EditIncomeModalProps) {
       toast.error(error.message || "Failed to delete income");
     }
   };
-
-  const isCategoryListEmpty = !isLoadingCategories && categories?.length === 0;
 
   return (
     <>
@@ -206,58 +167,30 @@ export function EditIncomeModal({ income }: EditIncomeModalProps) {
               />
             </div>
 
-            {/* Category - Unified Smart Dropdown */}
+            {/* Category */}
             <div className="space-y-1">
               <Label htmlFor="categoryId">Category</Label>
 
-              {isLoadingCategories ? (
-                <div className="flex items-center space-x-2 p-2 border rounded-md">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-sm text-muted-foreground">
-                    Loading...
-                  </span>
-                </div>
-              ) : (
-                <Select
-                  // 4. Use watched value
-                  value={watchedCategoryId || "none"}
-                  onValueChange={handleCategoryChange}
-                  disabled={createDefaults.isPending}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No category</SelectItem>
-                    <SelectItem value="uncategorized">
-                      -- Uncategorized --
-                    </SelectItem>
+              <Select
+                value={watchedCategoryId || "none"}
+                onValueChange={handleCategoryChange}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No category</SelectItem>
+                  <SelectItem value="uncategorized">
+                    -- Uncategorized --
+                  </SelectItem>
 
-                    {/* 
-                        LOGIC: 
-                        If categories exist, show them (value = ID).
-                        If NO categories exist, show defaults (value = Name).
-                    */}
-                    {!isCategoryListEmpty
-                      ? categories!.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.name}
-                          </SelectItem>
-                        ))
-                      : DEFAULT_INCOME_CATEGORIES.map((name) => (
-                          <SelectItem key={name} value={name}>
-                            {name}
-                          </SelectItem>
-                        ))}
-                  </SelectContent>
-                </Select>
-              )}
-              {isCategoryListEmpty && (
-                <p className="text-[10px] text-muted-foreground pt-1">
-                  * Selecting a category will automatically add it to your
-                  settings.
-                </p>
-              )}
+                  {categories?.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Date */}

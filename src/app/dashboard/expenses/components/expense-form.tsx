@@ -5,11 +5,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { expenseSchema, ExpenseFormType } from "@/app/core/schema/expense";
 import { useExpenses } from "@/app/core/hooks/use-expenses";
-import {
-  useExpenseCategories,
-  useCreateDefaultCategories,
-  DEFAULT_EXPENSE_CATEGORIES,
-} from "@/app/core/hooks/use-categories";
+import { useExpenseCategories } from "@/app/core/hooks/use-categories";
 
 import { Input } from "@/app/core/components/ui/input";
 import { Button } from "@/app/core/components/ui/button";
@@ -21,20 +17,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/app/core/components/ui/select";
-import { Loader2, Plus } from "lucide-react";
+import {
+  Loader2,
+  Plus,
+  DollarSign,
+  Calendar,
+  Tag,
+  FileText,
+  Globe,
+  ArrowRight,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
-// 1. Define the props interface
 interface ExpenseFormProps {
   children?: React.ReactNode;
 }
 
-// 2. Accept children in the component function
 export function ExpenseForm({ children }: ExpenseFormProps) {
   const { createExpense, isCreating } = useExpenses();
-  const { data: categories, isLoading: isLoadingCategories } =
-    useExpenseCategories();
-  const createDefaults = useCreateDefaultCategories();
+  // New hook returns data instantly, no loading state needed really
+  const { data: categories } = useExpenseCategories();
   const [isOpen, setIsOpen] = useState(false);
 
   const form = useForm<ExpenseFormType>({
@@ -58,33 +61,8 @@ export function ExpenseForm({ children }: ExpenseFormProps) {
     name: "currency",
   });
 
-  const handleCategoryChange = async (value: string) => {
-    if (value === "none" || value === "uncategorized") {
-      form.setValue("categoryId", value);
-      return;
-    }
-
-    if (categories && categories.length > 0) {
-      form.setValue("categoryId", value);
-      return;
-    }
-
-    try {
-      const toastId = toast.loading(`Initializing ${value} category...`);
-      const newCategories: any[] = await createDefaults.mutateAsync("EXPENSE");
-      const matchingCategory = newCategories?.find((cat) => cat.name === value);
-
-      if (matchingCategory) {
-        form.setValue("categoryId", matchingCategory.id);
-        toast.success("Categories initialized and selected!", { id: toastId });
-      } else {
-        form.setValue("categoryId", "none");
-        toast.dismiss(toastId);
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to initialize categories");
-    }
+  const handleCategoryChange = (value: string) => {
+    form.setValue("categoryId", value);
   };
 
   const onSubmit = async (data: ExpenseFormType) => {
@@ -94,7 +72,10 @@ export function ExpenseForm({ children }: ExpenseFormProps) {
         currency: data.currency || "USD",
         occurredAt: new Date(data.occurredAt).toISOString(),
         note: data.note?.trim() || undefined,
-        categoryId: data.categoryId?.trim() || undefined,
+        categoryId:
+          data.categoryId === "none" || data.categoryId === "uncategorized"
+            ? undefined
+            : data.categoryId,
       };
 
       await createExpense(payload);
@@ -115,11 +96,8 @@ export function ExpenseForm({ children }: ExpenseFormProps) {
     }
   };
 
-  const isCategoryListEmpty = !isLoadingCategories && categories?.length === 0;
-
   return (
     <>
-      {/* 3. Render children as the trigger if they exist, otherwise show default button */}
       {children ? (
         <span
           onClick={() => setIsOpen(true)}
@@ -131,196 +109,286 @@ export function ExpenseForm({ children }: ExpenseFormProps) {
         <div className="flex justify-end">
           <Button
             onClick={() => setIsOpen(true)}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 rounded-full bg-linear-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-6 h-12 shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 transition-all duration-300 group"
           >
-            <Plus className="w-4 h-4" /> Add Expense
+            <Plus className="w-4 h-4" />
+            Add Expense
+            <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
           </Button>
         </div>
       )}
 
-      {/* Modal */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md mx-4 relative max-h-[90vh] overflow-y-auto">
-            <button
-              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-lg"
-              onClick={() => setIsOpen(false)}
-            >
-              ✕
-            </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setIsOpen(false)}
+          />
 
-            <h2 className="text-xl font-bold mb-4">Add New Expense</h2>
+          <div className="relative bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-lg mx-auto border border-white/50 overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="relative bg-linear-to-r from-blue-500 to-cyan-500 p-6">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16 blur-2xl" />
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-12 -translate-x-12 blur-2xl" />
 
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              {/* Amount */}
-              <div>
-                <label
-                  htmlFor="amount"
-                  className="block mb-1 text-sm font-medium"
+              <div className="relative z-10 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
+                    <Plus className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-white">
+                      Add New Expense
+                    </h2>
+                    <p className="text-sm text-blue-100/80">
+                      Track your spending instantly
+                    </p>
+                  </div>
+                </div>
+                <button
+                  className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center border border-white/30 transition-all duration-300 group"
+                  onClick={() => setIsOpen(false)}
                 >
-                  Amount *
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                    $
-                  </span>
+                  <X className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-6"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-linear-to-br from-blue-100 to-cyan-100 flex items-center justify-center">
+                      <DollarSign className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <label
+                      htmlFor="amount"
+                      className="text-sm font-semibold text-slate-700"
+                    >
+                      Amount *
+                    </label>
+                  </div>
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-linear-to-r from-blue-500/10 to-cyan-500/10 rounded-xl blur group-hover:blur-sm transition-all duration-300" />
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400">
+                        $
+                      </span>
+                      <Input
+                        id="amount"
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        className="pl-10 h-14 text-lg font-semibold rounded-xl border-slate-200/50 bg-white/50 backdrop-blur-sm focus:border-blue-300 focus:ring-2 focus:ring-blue-500/20"
+                        {...form.register("amount", {
+                          valueAsNumber: true,
+                          required: "Amount is required",
+                          min: {
+                            value: 0.01,
+                            message: "Amount must be positive",
+                          },
+                        })}
+                      />
+                    </div>
+                  </div>
+                  {form.formState.errors.amount && (
+                    <p className="text-red-500 text-sm px-1">
+                      {form.formState.errors.amount.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-linear-to-br from-purple-100 to-pink-100 flex items-center justify-center">
+                        <Tag className="w-4 h-4 text-purple-600" />
+                      </div>
+                      <label className="text-sm font-semibold text-slate-700">
+                        Category
+                      </label>
+                    </div>
+
+                    <Select
+                      value={watchedCategoryId ?? undefined}
+                      onValueChange={handleCategoryChange}
+                    >
+                      <SelectTrigger className="h-14 rounded-xl border-slate-200/50 bg-white/50 backdrop-blur-sm focus:ring-2 focus:ring-purple-500/20">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-slate-200/50 bg-white/90 backdrop-blur-md shadow-2xl h-60">
+                        <SelectItem
+                          value="none"
+                          className="rounded-lg hover:bg-slate-100/50"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-md bg-slate-100 flex items-center justify-center">
+                              <Tag className="w-3 h-3 text-slate-500" />
+                            </div>
+                            No category
+                          </div>
+                        </SelectItem>
+
+                        {/* Map through the static categories provided by the hook */}
+                        {categories?.map((category) => (
+                          <SelectItem
+                            key={category.id}
+                            value={category.id}
+                            className="rounded-lg hover:bg-slate-100/50"
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-md bg-blue-100 flex items-center justify-center">
+                                <Tag className="w-3 h-3 text-blue-500" />
+                              </div>
+                              {category.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-linear-to-br from-green-100 to-emerald-100 flex items-center justify-center">
+                        <Globe className="w-4 h-4 text-green-600" />
+                      </div>
+                      <label className="text-sm font-semibold text-slate-700">
+                        Currency
+                      </label>
+                    </div>
+                    <Select
+                      onValueChange={(value) =>
+                        form.setValue("currency", value)
+                      }
+                      value={watchedCurrency}
+                    >
+                      <SelectTrigger className="h-14 rounded-xl border-slate-200/50 bg-white/50 backdrop-blur-sm focus:ring-2 focus:ring-green-500/20">
+                        <SelectValue placeholder="Select currency" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-slate-200/50 bg-white/90 backdrop-blur-md shadow-2xl">
+                        <SelectItem
+                          value="USD"
+                          className="rounded-lg hover:bg-slate-100/50"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">$</span>
+                            USD (United States Dollar)
+                          </div>
+                        </SelectItem>
+                        <SelectItem
+                          value="EUR"
+                          className="rounded-lg hover:bg-slate-100/50"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">€</span>
+                            EUR (Euro)
+                          </div>
+                        </SelectItem>
+                        <SelectItem
+                          value="GBP"
+                          className="rounded-lg hover:bg-slate-100/50"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">£</span>
+                            GBP (British Pound)
+                          </div>
+                        </SelectItem>
+                        <SelectItem
+                          value="CAD"
+                          className="rounded-lg hover:bg-slate-100/50"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">$</span>
+                            CAD (Canadian Dollar)
+                          </div>
+                        </SelectItem>
+                        <SelectItem
+                          value="AUD"
+                          className="rounded-lg hover:bg-slate-100/50"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">$</span>
+                            AUD (Australian Dollar)
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-linear-to-br from-amber-100 to-orange-100 flex items-center justify-center">
+                      <Calendar className="w-4 h-4 text-amber-600" />
+                    </div>
+                    <label
+                      htmlFor="occurredAt"
+                      className="text-sm font-semibold text-slate-700"
+                    >
+                      Date & Time *
+                    </label>
+                  </div>
                   <Input
-                    id="amount"
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    className="pl-8"
-                    {...form.register("amount", {
-                      valueAsNumber: true,
-                      required: "Amount is required",
-                      min: { value: 0.01, message: "Amount must be positive" },
+                    id="occurredAt"
+                    type="datetime-local"
+                    className="h-14 rounded-xl border-slate-200/50 bg-white/50 backdrop-blur-sm text-lg focus:border-amber-300 focus:ring-2 focus:ring-amber-500/20"
+                    {...form.register("occurredAt", {
+                      required: "Date is required",
                     })}
                   />
+                  {form.formState.errors.occurredAt && (
+                    <p className="text-red-500 text-sm px-1">
+                      {form.formState.errors.occurredAt.message}
+                    </p>
+                  )}
                 </div>
-                {form.formState.errors.amount && (
-                  <p className="text-red-500 text-sm">
-                    {form.formState.errors.amount.message}
-                  </p>
-                )}
-              </div>
 
-              {/* Category */}
-              <div>
-                <label
-                  htmlFor="categoryId"
-                  className="block mb-1 text-sm font-medium"
-                >
-                  Category
-                </label>
-
-                {isLoadingCategories ? (
-                  <div className="flex items-center space-x-2 p-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="text-sm text-muted-foreground">
-                      Loading categories...
-                    </span>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-linear-to-br from-slate-100 to-gray-100 flex items-center justify-center">
+                      <FileText className="w-4 h-4 text-slate-600" />
+                    </div>
+                    <label
+                      htmlFor="note"
+                      className="text-sm font-semibold text-slate-700"
+                    >
+                      Note
+                    </label>
                   </div>
-                ) : (
-                  <Select
-                    value={watchedCategoryId ?? undefined}
-                    onValueChange={handleCategoryChange}
-                    disabled={createDefaults.isPending}
+                  <Textarea
+                    id="note"
+                    rows={3}
+                    placeholder="Optional note about this expense (e.g., 'Dinner with friends', 'Office supplies')"
+                    className="rounded-xl border-slate-200/50 bg-white/50 backdrop-blur-sm focus:border-slate-300 focus:ring-2 focus:ring-slate-500/20 resize-none"
+                    {...form.register("note")}
+                  />
+                </div>
+
+                <div className="pt-4">
+                  <Button
+                    type="submit"
+                    disabled={isCreating}
+                    className="w-full h-14 rounded-xl bg-linear-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white text-lg font-semibold shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-300 group"
                   >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No category</SelectItem>
-                      <SelectItem value="uncategorized">
-                        -- Uncategorized --
-                      </SelectItem>
-                      {!isCategoryListEmpty
-                        ? categories!.map((category) => (
-                            <SelectItem key={category.id} value={category.id}>
-                              {category.name}
-                            </SelectItem>
-                          ))
-                        : DEFAULT_EXPENSE_CATEGORIES.map((name) => (
-                            <SelectItem key={name} value={name}>
-                              {name}
-                            </SelectItem>
-                          ))}
-                    </SelectContent>
-                  </Select>
-                )}
-
-                {isCategoryListEmpty && (
-                  <p className="text-[10px] text-muted-foreground pt-1">
-                    * Selecting a category will automatically add it to your
-                    settings.
-                  </p>
-                )}
-
-                {form.formState.errors.categoryId && (
-                  <p className="text-red-500 text-sm">
-                    {form.formState.errors.categoryId.message}
-                  </p>
-                )}
-              </div>
-
-              {/* Date */}
-              <div>
-                <label
-                  htmlFor="occurredAt"
-                  className="block mb-1 text-sm font-medium"
-                >
-                  Date & Time *
-                </label>
-                <Input
-                  id="occurredAt"
-                  type="datetime-local"
-                  {...form.register("occurredAt", {
-                    required: "Date is required",
-                  })}
-                />
-                {form.formState.errors.occurredAt && (
-                  <p className="text-red-500 text-sm">
-                    {form.formState.errors.occurredAt.message}
-                  </p>
-                )}
-              </div>
-
-              {/* Currency */}
-              <div>
-                <label
-                  htmlFor="currency"
-                  className="block mb-1 text-sm font-medium"
-                >
-                  Currency
-                </label>
-                <Select
-                  onValueChange={(value) => form.setValue("currency", value)}
-                  value={watchedCurrency}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select currency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USD">USD ($)</SelectItem>
-                    <SelectItem value="EUR">EUR (€)</SelectItem>
-                    <SelectItem value="GBP">GBP (£)</SelectItem>
-                    <SelectItem value="CAD">CAD ($)</SelectItem>
-                    <SelectItem value="AUD">AUD ($)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Note */}
-              <div>
-                <label
-                  htmlFor="note"
-                  className="block mb-1 text-sm font-medium"
-                >
-                  Note
-                </label>
-                <Textarea
-                  id="note"
-                  rows={3}
-                  placeholder="Optional note about this expense"
-                  {...form.register("note")}
-                />
-              </div>
-
-              <Button
-                type="submit"
-                disabled={isCreating || isLoadingCategories}
-                className="w-full mt-4"
-              >
-                {isCreating ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Adding...
-                  </>
-                ) : (
-                  "Add Expense"
-                )}
-              </Button>
-            </form>
+                    {isCreating ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                        Adding Expense...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-5 h-5 mr-3" />
+                        Add Expense
+                        <ArrowRight className="w-5 h-5 ml-3 group-hover:translate-x-1 transition-transform" />
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}
