@@ -93,11 +93,14 @@ export async function GET(request: NextRequest) {
       });
 
       // Sort by total amount (descending) after fetching
-      const sortedIncomes = [...monthlyIncomes].sort((a, b) => {
-        const amountA = Number(a._sum.amount || 0);
-        const amountB = Number(b._sum.amount || 0);
-        return amountB - amountA;
-      });
+      type MonthlyIncome = (typeof monthlyIncomes)[number];
+      const sortedIncomes = [...monthlyIncomes].sort(
+        (a: MonthlyIncome, b: MonthlyIncome) => {
+          const amountA = Number(a._sum.amount || 0);
+          const amountB = Number(b._sum.amount || 0);
+          return amountB - amountA;
+        }
+      );
 
       result = sortedIncomes.map((item) => ({
         currency: item.currency,
@@ -129,11 +132,14 @@ export async function GET(request: NextRequest) {
       });
 
       // Sort by total amount (descending) after fetching
-      const sortedIncomes = [...yearlyIncomes].sort((a, b) => {
-        const amountA = Number(a._sum.amount || 0);
-        const amountB = Number(b._sum.amount || 0);
-        return amountB - amountA;
-      });
+      type YearlyIncome = (typeof yearlyIncomes)[number];
+      const sortedIncomes = [...yearlyIncomes].sort(
+        (a: YearlyIncome, b: YearlyIncome) => {
+          const amountA = Number(a._sum.amount || 0);
+          const amountB = Number(b._sum.amount || 0);
+          return amountB - amountA;
+        }
+      );
 
       result = sortedIncomes.map((item) => ({
         currency: item.currency,
@@ -164,7 +170,9 @@ export async function GET(request: NextRequest) {
           },
         });
 
-        const categoryMap = new Map(categories.map((cat) => [cat.id, cat]));
+        const categoryMap = new Map(
+          categories.map((cat: { id: string; name: string }) => [cat.id, cat])
+        );
 
         result = result.map((item) => ({
           ...item,
