@@ -16,7 +16,6 @@ async function getDbUser(authUser: { id: string; email?: string }) {
 
 // --- GET Handler for Income Statistics ---
 export async function GET() {
-  // Removed unused 'request' parameter
   try {
     // 1. Get User Context
     const authUser = await getAuthenticatedUser();
@@ -109,8 +108,8 @@ export async function GET() {
     );
 
     const totalMonths = Object.keys(monthlyTotals).length;
-    const totalAmount = Object.values(monthlyTotals).reduce(
-      (sum: number, amount: number) => sum + amount,
+    const totalAmount = Object.values(monthlyTotals).reduce<number>(
+      (sum, amount) => sum + amount,
       0
     );
     const averagePerMonth = totalMonths > 0 ? totalAmount / totalMonths : 0;
