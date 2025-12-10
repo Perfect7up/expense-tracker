@@ -24,6 +24,8 @@ export function useExpenses() {
     },
   });
 
+  // Inside useExpenses hook...
+
   const createExpenseMutation = useMutation<Expense, Error, CreateExpenseInput>(
     {
       mutationFn: async (data: CreateExpenseInput) => {
@@ -37,7 +39,13 @@ export function useExpenses() {
           let errorMessage = "Failed to create expense";
           try {
             const errorData = await res.json();
-            errorMessage = errorData.error || errorMessage;
+            // If validation details exist, log them to console for debugging
+            if (errorData.details) {
+              console.error("Validation Errors:", errorData.details);
+              errorMessage = `Validation Error: ${JSON.stringify(errorData.details)}`;
+            } else {
+              errorMessage = errorData.error || errorMessage;
+            }
           } catch {
             errorMessage = res.statusText;
           }

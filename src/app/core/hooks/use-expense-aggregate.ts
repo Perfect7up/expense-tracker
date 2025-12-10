@@ -1,11 +1,8 @@
+// hooks/use-expense-aggregate.ts
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import {
-  ExpenseAggregate,
-  ExpenseSummary,
-  PeriodTotals,
-} from "../types/expense-aggregate";
+import { AnalyticsData } from "../types/analytics";
 
 interface UseExpenseAggregateParams {
   period?: "monthly" | "yearly";
@@ -30,7 +27,7 @@ export function useExpenseAggregate(params: UseExpenseAggregateParams = {}) {
     enabled = true,
   } = params;
 
-  return useQuery<ExpenseAggregate[]>({
+  return useQuery<AnalyticsData[]>({
     queryKey: ["expense-aggregate", period, year, month, categoryId],
     queryFn: async () => {
       const url = new URL("/api/expenses/aggregate", window.location.origin);
@@ -44,7 +41,15 @@ export function useExpenseAggregate(params: UseExpenseAggregateParams = {}) {
         const error = await res.json();
         throw new Error(error.error || "Failed to fetch aggregate expenses");
       }
-      return res.json();
+
+      const data = await res.json();
+      // Transform the data to match AnalyticsData interface
+      return data.map((item: any) => ({
+        period: item.period,
+        totalAmount: item.totalAmount || item.total || 0,
+        count: item.count || item.expenseCount || 0,
+        averageAmount: item.averageAmount || item.average || 0,
+      }));
     },
     enabled,
   });
@@ -53,7 +58,7 @@ export function useExpenseAggregate(params: UseExpenseAggregateParams = {}) {
 export function useExpenseSummary(params: UseExpenseSummaryParams = {}) {
   const { period = "month", limit = 12, enabled = true } = params;
 
-  return useQuery<ExpenseSummary[]>({
+  return useQuery<AnalyticsData[]>({
     queryKey: ["expense-summary", period, limit],
     queryFn: async () => {
       const url = new URL("/api/expenses/summary", window.location.origin);
@@ -65,25 +70,16 @@ export function useExpenseSummary(params: UseExpenseSummaryParams = {}) {
         const error = await res.json();
         throw new Error(error.error || "Failed to fetch expense summary");
       }
-      return res.json();
+
+      const data = await res.json();
+      // Transform the data to match AnalyticsData interface
+      return data.map((item: any) => ({
+        period: item.period,
+        totalAmount: item.totalAmount || item.total || 0,
+        count: item.count || item.expenseCount || 0,
+        averageAmount: item.averageAmount || item.average || 0,
+      }));
     },
     enabled,
-  });
-}
-
-export function usePeriodTotals(period: "month" | "year" = "month") {
-  return useQuery<PeriodTotals>({
-    queryKey: ["period-totals", period],
-    queryFn: async () => {
-      const url = new URL("/api/expenses/totals", window.location.origin);
-      url.searchParams.set("period", period);
-
-      const res = await fetch(url.toString());
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to fetch period totals");
-      }
-      return res.json();
-    },
   });
 }

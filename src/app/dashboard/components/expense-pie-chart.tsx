@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useCallback } from "react";
-import { TooltipProps } from "recharts";
 import {
   PieChart,
   Pie,
@@ -18,7 +17,6 @@ import {
   AlertCircle,
   Zap,
   TrendingUp as ArrowUp,
-  TrendingDown as ArrowDown,
 } from "lucide-react";
 import { Skeleton } from "@/app/core/components/ui/skeleton";
 import {
@@ -147,14 +145,14 @@ export const ExpensePieChart = () => {
   if (isLoading) {
     return (
       <Card className="relative overflow-hidden border-slate-200/50 bg-white/80 backdrop-blur-sm shadow-lg">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-cyan-400" />
+        <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-blue-500 to-cyan-400" />
         <CardHeader>
           <Skeleton className="h-6 w-48" />
           <Skeleton className="h-4 w-64" />
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            <div className="h-[320px] w-full flex items-center justify-center">
+            <div className="h-80 w-full flex items-center justify-center">
               <div className="relative">
                 <Skeleton className="w-64 h-64 rounded-full" />
                 <Skeleton className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full" />
@@ -173,8 +171,8 @@ export const ExpensePieChart = () => {
 
   if (error) {
     return (
-      <Card className="relative overflow-hidden border-rose-200/50 bg-gradient-to-br from-rose-50/50 to-pink-50/30 backdrop-blur-sm shadow-lg">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-400 to-pink-500" />
+      <Card className="relative overflow-hidden border-rose-200/50 bg-linear-to-br from-rose-50/50 to-pink-50/30 backdrop-blur-sm shadow-lg">
+        <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-rose-400 to-pink-500" />
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-rose-800">
             <AlertCircle className="h-5 w-5" />
@@ -182,7 +180,7 @@ export const ExpensePieChart = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="min-h-[400px] flex flex-col items-center justify-center">
-          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-rose-100 to-pink-100 flex items-center justify-center mb-4">
+          <div className="w-24 h-24 rounded-full bg-linear-to-br from-rose-100 to-pink-100 flex items-center justify-center mb-4">
             <AlertCircle className="w-12 h-12 text-rose-400" />
           </div>
           <p className="text-slate-600 text-center">
@@ -198,17 +196,17 @@ export const ExpensePieChart = () => {
 
   return (
     <Card className="relative overflow-hidden group border-slate-200/50 bg-white/80 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300">
-      {/* Gradient accent line - Using first two colors from COLORS array */}
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#0088FE] to-[#00C49F]" />
+      {/* linear accent line - Using first two colors from COLORS array */}
+      <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-[#0088FE] to-[#00C49F]" />
 
       {/* Animated background effect */}
       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-        <div className="absolute -top-20 -right-20 w-64 h-64 bg-gradient-to-br from-[#0088FE]/10 to-[#00C49F]/10 rounded-full blur-3xl" />
+        <div className="absolute -top-20 -right-20 w-64 h-64 bg-linear-to-br from-[#0088FE]/10 to-[#00C49F]/10 rounded-full blur-3xl" />
       </div>
 
       <CardHeader className="relative z-10">
         <CardTitle className="flex items-center gap-2 text-slate-900">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0088FE]/10 to-[#00C49F]/10 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-linear-to-br from-[#0088FE]/10 to-[#00C49F]/10 flex items-center justify-center">
             <PieChartIcon className="h-5 w-5 text-[#0088FE]" />
           </div>
           <div>

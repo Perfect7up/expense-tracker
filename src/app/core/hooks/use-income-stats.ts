@@ -3,17 +3,21 @@
 import { useIncomes } from "./use-income";
 
 export function useIncomeStats() {
-  const { incomesQuery } = useIncomes();
-  const incomes = incomesQuery.data || [];
+  // FIX: Destructure 'incomes' directly.
+  // The 'incomesQuery' object was removed in the previous update to simplify the hook.
+  const { incomes, isLoading } = useIncomes();
+
+  // Safety check to ensure we always have an array
+  const data = incomes || [];
 
   // Calculate current month total
   const getCurrentMonthTotal = () => {
-    if (!incomes || incomes.length === 0) return 0;
+    if (data.length === 0) return 0;
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
 
-    return incomes
+    return data
       .filter((income: any) => {
         const incomeDate = new Date(income.receivedAt);
         return (
@@ -26,13 +30,14 @@ export function useIncomeStats() {
 
   // Calculate last month total
   const getLastMonthTotal = () => {
-    if (!incomes || incomes.length === 0) return 0;
+    if (data.length === 0) return 0;
     const now = new Date();
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const lastMonthYear = lastMonth.getFullYear();
-    const lastMonthIndex = lastMonth.getMonth();
+    // Set date to the 1st to avoid edge cases (e.g. if today is 31st, jumping back 1 month might skip Feb)
+    const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthYear = lastMonthDate.getFullYear();
+    const lastMonthIndex = lastMonthDate.getMonth();
 
-    return incomes
+    return data
       .filter((income: any) => {
         const incomeDate = new Date(income.receivedAt);
         return (
@@ -45,10 +50,10 @@ export function useIncomeStats() {
 
   // Calculate current year total
   const getCurrentYearTotal = () => {
-    if (!incomes || incomes.length === 0) return 0;
+    if (data.length === 0) return 0;
     const currentYear = new Date().getFullYear();
 
-    return incomes
+    return data
       .filter(
         (income: any) =>
           new Date(income.receivedAt).getFullYear() === currentYear
@@ -56,10 +61,11 @@ export function useIncomeStats() {
       .reduce((total: number, income: any) => total + income.amount, 0);
   };
 
+  // Calculate Monthly Average
   const getAveragePerMonth = () => {
-    if (!incomes || incomes.length === 0) return 0;
+    if (data.length === 0) return 0;
 
-    const monthlyTotals = incomes.reduce(
+    const monthlyTotals = data.reduce(
       (acc: { [key: string]: number }, income: any) => {
         const date = new Date(income.receivedAt);
         const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
@@ -85,6 +91,6 @@ export function useIncomeStats() {
     lastMonthTotal: getLastMonthTotal(),
     currentYearTotal: getCurrentYearTotal(),
     averagePerMonth: getAveragePerMonth(),
-    isLoading: incomesQuery.isLoading,
+    isLoading: isLoading,
   };
 }

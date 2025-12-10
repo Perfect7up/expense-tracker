@@ -1,9 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/app/core/lib/supabase/server";
 import prisma from "@/app/core/lib/prisma";
-import { updateIncomeSchema } from "@/app/core/schema/income";
+import { z } from "zod";
 
-// --- Helper: Upsert user ---
+// --- ROBUST UPDATE SCHEMA ---
+const updateIncomeSchema = z.object({
+  amount: z.coerce.number().positive().optional(),
+  source: z
+    .string()
+    .nullish()
+    .transform((v) => v || null),
+  note: z
+    .string()
+    .nullish()
+    .transform((v) => v || null),
+  receivedAt: z.union([z.string(), z.date()]).pipe(z.coerce.date()).optional(),
+  currency: z.string().optional(),
+  categoryId: z
+    .string()
+    .nullish()
+    .transform((val) =>
+      !val || val === "" || val === "none" || val === "uncategorized"
+        ? null
+        : val
+    ),
+});
+
 async function getDbUser(authUser: { id: string; email?: string }) {
   return prisma.user.upsert({
     where: { supabaseId: authUser.id },
@@ -19,24 +41,19 @@ export async function GET(
 ) {
   try {
     const authUser = await getAuthenticatedUser();
-    if (!authUser) {
+    if (!authUser)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
 
     const dbUser = await getDbUser(authUser);
     const { id } = await params;
 
     const income = await prisma.income.findFirst({
-      where: {
-        id: id,
-        userId: dbUser.id,
-      },
+      where: { id: id, userId: dbUser.id },
       include: { category: true },
     });
 
-    if (!income) {
+    if (!income)
       return NextResponse.json({ error: "Income not found" }, { status: 404 });
-    }
 
     return NextResponse.json({ ...income, amount: Number(income.amount) });
   } catch (error) {
@@ -55,9 +72,8 @@ export async function PUT(
 ) {
   try {
     const authUser = await getAuthenticatedUser();
-    if (!authUser) {
+    if (!authUser)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
 
     const dbUser = await getDbUser(authUser);
     const { id } = await params;
@@ -72,19 +88,12 @@ export async function PUT(
       );
     }
 
-    // Check if income exists and belongs to user
     const existingIncome = await prisma.income.findFirst({
-      where: {
-        id: id,
-        userId: dbUser.id,
-      },
+      where: { id: id, userId: dbUser.id },
     });
 
     if (!existingIncome) {
-      return NextResponse.json(
-        { error: "Income not found or you don't have permission" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Income not found" }, { status: 404 });
     }
 
     const data = validation.data;
@@ -92,14 +101,13 @@ export async function PUT(
     const income = await prisma.income.update({
       where: { id: id },
       data: {
-        ...(data.amount !== undefined && { amount: data.amount }),
-        ...(data.source !== undefined && { source: data.source }),
-        ...(data.note !== undefined && { note: data.note }),
-        ...(data.receivedAt !== undefined && {
-          receivedAt: new Date(data.receivedAt),
-        }),
-        ...(data.currency !== undefined && { currency: data.currency }),
-        ...(data.categoryId !== undefined && { categoryId: data.categoryId }),
+        // Use ?? to check if undefined, but allow nulls from the transform
+        amount: data.amount ?? existingIncome.amount,
+        source: data.source,
+        note: data.note,
+        receivedAt: data.receivedAt ?? existingIncome.receivedAt,
+        currency: data.currency ?? existingIncome.currency,
+        categoryId: data.categoryId,
       },
       include: { category: true },
     });
@@ -119,91 +127,35 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  console.log("=== DELETE INCOME API CALLED ===");
-  console.log("Request URL:", request.url);
-
   try {
-    // 1. Get authenticated user
     const authUser = await getAuthenticatedUser();
-    if (!authUser) {
-      console.log("ERROR: No authenticated user");
+    if (!authUser)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
 
-    console.log("Authenticated user ID:", authUser.id);
-
-    // 2. Get database user
     const dbUser = await getDbUser(authUser);
-    console.log("Database user ID:", dbUser.id);
-
-    // 3. Get income ID from params (await it!)
     const { id } = await params;
-    console.log("Income ID to delete:", id);
 
-    if (!id || id === "[id]") {
-      console.log("ERROR: Invalid income ID");
-      return NextResponse.json({ error: "Invalid income ID" }, { status: 400 });
-    }
-
-    // 4. Check if income exists and belongs to user
     const existingIncome = await prisma.income.findFirst({
-      where: {
-        id: id,
-        userId: dbUser.id,
-      },
+      where: { id: id, userId: dbUser.id },
     });
 
-    console.log("Existing income found:", !!existingIncome);
-
     if (!existingIncome) {
-      console.log("ERROR: Income not found or doesn't belong to user");
-      return NextResponse.json(
-        { error: "Income not found or you don't have permission" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Income not found" }, { status: 404 });
     }
 
-    // 5. Delete the income
-    console.log("Attempting to delete income...");
     await prisma.income.delete({
       where: { id: id },
     });
 
-    console.log("SUCCESS: Income deleted");
-
     return NextResponse.json(
-      {
-        success: true,
-        message: "Income deleted successfully",
-        deletedId: id,
-      },
+      { success: true, message: "Income deleted successfully" },
       { status: 200 }
     );
   } catch (error: any) {
-    console.error("=== DELETE INCOME ERROR ===");
-    console.error("Error:", error);
-
-    // Handle specific Prisma errors
-    if (error.code === "P2025") {
-      return NextResponse.json({ error: "Income not found" }, { status: 404 });
-    }
-
-    if (error.code === "P2003") {
-      return NextResponse.json(
-        { error: "Cannot delete income due to related records" },
-        { status: 400 }
-      );
-    }
-
+    console.error("DELETE Income Error:", error);
     return NextResponse.json(
-      {
-        error: "Failed to delete income",
-        details:
-          process.env.NODE_ENV === "development" ? error.message : undefined,
-      },
+      { error: "Failed to delete income" },
       { status: 500 }
     );
-  } finally {
-    console.log("=== DELETE INCOME COMPLETED ===");
   }
 }

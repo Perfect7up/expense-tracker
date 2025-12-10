@@ -1,187 +1,212 @@
+"use client";
+
+import { useState, useCallback } from "react";
 import { IncomeList } from "./components/income-list";
-import { AddIncomeModal } from "./components/add-income-modal";
-import { CalendarView } from "./components/calendar-view";
 import { MonthlyIncomes } from "./components/monthly-incomes";
-import { IncomeStats } from "./components/income-stats";
-import prisma from "@/app/core/lib/prisma";
-import { getAuthenticatedUser } from "@/app/core/lib/supabase/server";
-import { redirect } from "next/navigation";
+import { IncomeForm } from "./components/income-form";
+import { IncomeCalendarView } from "./components/income-calendar-view";
+import { useIncomeStats } from "@/app/core/hooks/use-income-stats"; // Create this hook
+import { Button } from "@/app/core/components/ui/button";
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/app/core/components/ui/tabs";
-import { Calendar, DollarSign, List, TrendingUp } from "lucide-react";
+  Plus,
+  Target,
+  ArrowRight,
+  List,
+  Calendar,
+  PieChart,
+  BarChart3,
+} from "lucide-react";
+import { IncomeSummary } from "./components/income-summary";
 
-export default async function IncomePage() {
-  const authUser = await getAuthenticatedUser();
+// Import shared components
+import {
+  BackgroundEffects,
+  PageHeader,
+  StatsGrid,
+  TabsContainer,
+  TabContent,
+  SelectedDateInfo,
+  HowToUse,
+} from "@/app/core/components/shared/layout";
 
-  if (!authUser) {
-    redirect("/auth/signin");
-  }
+export default function IncomePage() {
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<
+    Date | undefined
+  >(new Date());
+  const [dailyIncomes, setDailyIncomes] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState("list"); // Default to "list" (All Incomes)
+  const [monthlyViewMonth, setMonthlyViewMonth] = useState<Date | undefined>(
+    new Date()
+  );
 
-  const dbUser = await prisma.user.upsert({
-    where: { supabaseId: authUser.id },
-    create: { email: authUser.email!, supabaseId: authUser.id },
-    update: {},
-  });
+  // Use the actual hook (you'll need to create this)
+  const {
+    currentMonthTotal,
+    lastMonthTotal,
+    currentYearTotal,
+    averagePerMonth,
+    isLoading: statsLoading,
+  } = useIncomeStats();
 
-  // We still fetch categories server-side for components that might need them (like MonthlyIncomes)
-  // or to pre-hydrate the cache if we were using a hydration boundary.
-  const categories = await prisma.category.findMany({
-    where: { userId: dbUser.id, type: "INCOME" },
-    orderBy: { createdAt: "desc" },
-  });
+  const handleDateSelect = useCallback((date: Date | undefined) => {
+    setSelectedCalendarDate(date);
+  }, []);
+
+  const handleSetDailyIncomes = useCallback((incomes: any[]) => {
+    setDailyIncomes(incomes);
+  }, []);
+
+  const handleShowMonthlyFromCalendar = useCallback(() => {
+    if (selectedCalendarDate) {
+      setMonthlyViewMonth(selectedCalendarDate);
+      setActiveTab("monthly");
+    }
+  }, [selectedCalendarDate]);
+
+  const percentageChange =
+    lastMonthTotal > 0
+      ? (((currentMonthTotal - lastMonthTotal) / lastMonthTotal) * 100).toFixed(
+          1
+        )
+      : "0";
+
+  const stats = [
+    {
+      title: "This Month",
+      value: currentMonthTotal,
+      description: "",
+      icon: "calendarDays" as const,
+      iconBg: "bg-linear-to-br from-blue-500 to-cyan-400",
+      loading: statsLoading,
+      percentageChange: percentageChange,
+    },
+    {
+      title: "Last Month",
+      value: lastMonthTotal,
+      description: "Previous period total",
+      icon: "calendar" as const,
+      iconBg: "bg-linear-to-br from-slate-600 to-slate-400",
+      loading: statsLoading,
+    },
+    {
+      title: "This Year",
+      value: currentYearTotal,
+      description: "Year-to-date total",
+      icon: "trendingUp" as const,
+      iconBg: "bg-linear-to-br from-green-500 to-emerald-400",
+      loading: statsLoading,
+    },
+    {
+      title: "Monthly Avg",
+      value: averagePerMonth,
+      description: "Average earnings",
+      icon: "barChart" as const,
+      iconBg: "bg-linear-to-br from-purple-500 to-pink-400",
+      loading: statsLoading,
+    },
+  ];
+
+  const tabs = [
+    {
+      value: "list",
+      icon: <List className="h-4 w-4" />,
+      label: "All Incomes",
+    },
+    {
+      value: "daily",
+      icon: <Calendar className="h-4 w-4" />,
+      label: "Daily View",
+    },
+    {
+      value: "monthly",
+      icon: <PieChart className="h-4 w-4" />,
+      label: "Monthly View",
+    },
+    {
+      value: "analytics",
+      icon: <BarChart3 className="h-4 w-4" />,
+      label: "Analytics",
+    },
+  ];
+
+  const instructions = [
+    "Click any date to see incomes for that day",
+    "Use arrow buttons to navigate between months",
+    'Click "Show Month" to view all incomes for the selected month',
+    "Future dates are disabled for entry",
+  ];
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-8">
-      {/* Header */}
-      <div className="flex justify-between items-start md:items-center flex-col md:flex-row gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Income Tracker</h1>
-          <p className="text-gray-600 mt-2">
-            Track and manage your income with monthly/yearly insights
-          </p>
-        </div>
+    <div className="relative min-h-screen px-4 py-8 overflow-hidden">
+      <BackgroundEffects />
 
-        {/* 
-           FIX 1: Removed categories={categories} 
-           The modal/form now fetches its own categories via hooks.
-        */}
-        <AddIncomeModal />
-      </div>
+      <div className="container mx-auto">
+        <PageHeader
+          title="INCOME"
+          description="Track, analyze, and optimize your income with AI-powered insights and real-time financial intelligence."
+          icon={<Target className="w-4 h-4" />}
+          tagline="Smart Income Tracking"
+        >
+          {/* Make sure IncomeForm follows the same pattern as ExpenseForm */}
+          <IncomeForm>
+            <Button
+              size="lg"
+              className="rounded-full bg-linear-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-6 h-12 shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 transition-all duration-300 group"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Income
+              <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </IncomeForm>
+        </PageHeader>
 
-      {/* Stats Cards */}
-      <IncomeStats />
+        <StatsGrid stats={stats} />
 
-      {/* Main Content Tabs */}
-      <Tabs defaultValue="calendar" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
-          <TabsTrigger value="calendar" className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            <span className="hidden sm:inline">Calendar View</span>
-            <span className="sm:hidden">Calendar</span>
-          </TabsTrigger>
-          <TabsTrigger value="monthly" className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            <span className="hidden sm:inline">Monthly View</span>
-            <span className="sm:hidden">Monthly</span>
-          </TabsTrigger>
-          <TabsTrigger value="list" className="flex items-center gap-2">
-            <List className="h-4 w-4" />
-            <span className="hidden sm:inline">All Incomes</span>
-            <span className="sm:hidden">All</span>
-          </TabsTrigger>
-          <TabsTrigger value="analytics" className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
-            <span className="hidden sm:inline">Analytics</span>
-            <span className="sm:hidden">Analytics</span>
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Calendar View Tab */}
-        <TabsContent value="calendar" className="mt-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <CalendarView />
-            <div className="space-y-6">
-              {/* MonthlyIncomes still requires categories prop */}
-              <MonthlyIncomes categories={categories} />
-              <div className="p-4 border rounded-lg bg-blue-50">
-                <h3 className="font-semibold mb-2 flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  Calendar Tips
-                </h3>
-                <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• Click any date to view incomes for that day</li>
-                  <li>• Navigate between months using arrow buttons</li>
-                  <li>
-                    • Future months are disabled - incomes can&apos;t be added
-                    ahead of time
-                  </li>
-                  <li>• Export monthly data for offline analysis</li>
-                </ul>
-              </div>
+        <TabsContainer
+          value={activeTab}
+          onValueChange={setActiveTab}
+          tabs={tabs}
+        >
+          <TabContent value="list">
+            <div className="rounded-xl overflow-hidden">
+              <IncomeList />
             </div>
-          </div>
-        </TabsContent>
+          </TabContent>
 
-        {/* Monthly View Tab */}
-        <TabsContent value="monthly" className="mt-6">
-          <div className="space-y-6">
-            {/* MonthlyIncomes still requires categories prop */}
-            <MonthlyIncomes categories={categories} />
-            <div className="p-4 border rounded-lg bg-green-50">
-              <h3 className="font-semibold mb-2">Monthly Insights</h3>
-              <ul className="text-sm text-gray-600 space-y-1">
-                <li>• Track your income patterns month over month</li>
-                <li>• Identify your highest earning months</li>
-                <li>• Plan your budget based on monthly income trends</li>
-                <li>• Compare income sources across different months</li>
-              </ul>
-            </div>
-          </div>
-        </TabsContent>
-
-        {/* All Incomes Tab */}
-        <TabsContent value="list" className="mt-6">
-          <div className="space-y-6">
-            <div className="p-4 bg-linear-to-r from-green-50 to-emerald-50 rounded-lg">
-              <h2 className="text-lg font-semibold mb-2">All Incomes</h2>
-              <p className="text-sm text-gray-600">
-                View and manage all your income transactions. Use filters to
-                find specific entries.
-              </p>
-            </div>
-
-            {/* 
-               FIX 2: Removed categories={categories} 
-               IncomeList now fetches its own categories via hooks.
-            */}
-            <IncomeList />
-          </div>
-        </TabsContent>
-
-        {/* Analytics Tab */}
-        <TabsContent value="analytics" className="mt-6">
-          <div className="p-6 border rounded-lg bg-white">
-            <h2 className="text-xl font-semibold mb-4">Income Analytics</h2>
-            <p className="text-gray-600 mb-6">
-              Analyze your income patterns and trends over time. Use these
-              insights for better financial planning.
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="p-4 border rounded-lg">
-                <h3 className="font-medium mb-2">Yearly Overview</h3>
-                <p className="text-sm text-gray-600">
-                  Track your income growth year over year. Identify seasonal
-                  patterns and plan for the future.
-                </p>
+          <TabContent value="daily">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-white/50 backdrop-blur-sm border border-slate-200/50 rounded-2xl p-6 shadow-lg">
+                <IncomeCalendarView
+                  onDateSelect={handleDateSelect}
+                  onShowMonthly={handleShowMonthlyFromCalendar}
+                  setDailyIncomes={handleSetDailyIncomes}
+                  setSelectedDate={handleDateSelect}
+                />
               </div>
 
-              <div className="p-4 border rounded-lg">
-                <h3 className="font-medium mb-2">Source Analysis</h3>
-                <p className="text-sm text-gray-600">
-                  See which income sources contribute the most to your total
-                  earnings. Focus on growing your top performers.
-                </p>
+              <div className="space-y-6">
+                <HowToUse instructions={instructions} />
+
+                {selectedCalendarDate && (
+                  <SelectedDateInfo
+                    date={selectedCalendarDate}
+                    dailyItems={dailyIncomes}
+                    itemType="income"
+                    onShowMonthly={handleShowMonthlyFromCalendar}
+                  />
+                )}
               </div>
             </div>
-          </div>
-        </TabsContent>
-      </Tabs>
+          </TabContent>
 
-      {/* Quick Tips */}
-      <div className="mt-8 p-4 border rounded-lg bg-yellow-50">
-        <h3 className="font-semibold mb-2">Income Tracking Tips</h3>
-        <ul className="text-sm text-gray-600 space-y-1">
-          <li>• Record all income sources for accurate financial tracking</li>
-          <li>• Categorize your income to understand where it comes from</li>
-          <li>• Use the calendar view to see income patterns by date</li>
-          <li>• Export data for tax preparation and financial planning</li>
-          <li>• Set monthly income goals based on historical data</li>
-        </ul>
+          <TabContent value="monthly">
+            <MonthlyIncomes selectedDate={monthlyViewMonth} />
+          </TabContent>
+
+          <TabContent value="analytics">
+            <IncomeSummary />
+          </TabContent>
+        </TabsContainer>
       </div>
     </div>
   );
