@@ -44,7 +44,7 @@ export default function ResetPasswordPage() {
           <div className="text-sm text-slate-600">
             Remember your password?{" "}
             <Link
-              href="/auth/signin"
+              href="/account/signin"
               className="font-semibold text-blue-600 hover:text-blue-700 transition-colors"
             >
               Sign in

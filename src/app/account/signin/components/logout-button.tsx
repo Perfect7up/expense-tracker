@@ -21,7 +21,7 @@ export function LogoutButton() {
     router.refresh();
 
     // 3. Redirect to login
-    router.push("/auth/signin");
+    router.push("/account/signin");
 
     setIsLoading(false);
   };

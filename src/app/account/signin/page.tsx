@@ -1,4 +1,3 @@
-// app/signin/page.tsx
 import { Suspense } from "react";
 import {
   Card,
@@ -50,7 +49,7 @@ export default function SigninPage() {
             </Link>
             New user?{" "}
             <Link
-              href="/auth/signup"
+              href="/account/signup"
               className="font-semibold text-blue-600 hover:text-blue-700 transition-colors"
             >
               Create account

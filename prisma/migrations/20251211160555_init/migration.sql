@@ -5,8 +5,10 @@ CREATE TYPE "CategoryType" AS ENUM ('EXPENSE', 'INCOME');
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "name" TEXT,
+    "avatarUrl" TEXT,
     "supabaseId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -18,6 +20,7 @@ CREATE TABLE "Category" (
     "type" "CategoryType" NOT NULL,
     "userId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Category_pkey" PRIMARY KEY ("id")
 );
@@ -32,6 +35,7 @@ CREATE TABLE "Expense" (
     "note" TEXT,
     "occurredAt" TIMESTAMP(3) NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Expense_pkey" PRIMARY KEY ("id")
 );
@@ -47,6 +51,7 @@ CREATE TABLE "Income" (
     "note" TEXT,
     "receivedAt" TIMESTAMP(3) NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Income_pkey" PRIMARY KEY ("id")
 );
@@ -61,22 +66,31 @@ CREATE UNIQUE INDEX "User_supabaseId_key" ON "User"("supabaseId");
 CREATE INDEX "Category_userId_idx" ON "Category"("userId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Category_userId_name_type_key" ON "Category"("userId", "name", "type");
+
+-- CreateIndex
 CREATE INDEX "Expense_userId_occurredAt_idx" ON "Expense"("userId", "occurredAt");
 
 -- CreateIndex
+CREATE INDEX "Expense_categoryId_idx" ON "Expense"("categoryId");
+
+-- CreateIndex
 CREATE INDEX "Income_userId_receivedAt_idx" ON "Income"("userId", "receivedAt");
+
+-- CreateIndex
+CREATE INDEX "Income_categoryId_idx" ON "Income"("categoryId");
 
 -- AddForeignKey
 ALTER TABLE "Category" ADD CONSTRAINT "Category_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Expense" ADD CONSTRAINT "Expense_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "Expense" ADD CONSTRAINT "Expense_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "Category"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Income" ADD CONSTRAINT "Income_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Expense" ADD CONSTRAINT "Expense_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Income" ADD CONSTRAINT "Income_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "Category"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Income" ADD CONSTRAINT "Income_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

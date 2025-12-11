@@ -4,6 +4,7 @@
 import { User } from "@supabase/supabase-js";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
 import {
   Home,
   TrendingUp,
@@ -20,14 +21,21 @@ import {
   ChevronRight,
   User as UserIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/app/core/components/ui/button";
 import { Separator } from "@/app/core/components/ui/separator";
-import { LogoutButton } from "@/app/auth/signin/components/logout-button";
+import { LogoutButton } from "@/app/account/signin/components/logout-button";
 
 interface SidebarProps {
   user: User;
 }
+
+// Type for user profile data
+type UserProfile = {
+  email: string;
+  name?: string | null;
+  avatarUrl?: string | null;
+};
 
 const navigationItems = [
   {
@@ -102,6 +110,32 @@ const secondaryItems = [
 export function DashboardSidebar({ user }: SidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [imageError, setImageError] = useState(false);
+
+  // Fetch user profile data including avatar
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const res = await fetch("/api/user");
+        if (res.ok) {
+          const data = await res.json();
+          setUserProfile(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch user profile:", error);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
+
+  // Get display name
+  const displayName = userProfile?.name || user.email?.split("@")[0] || "User";
+  const displayEmail = userProfile?.email || user.email || "";
+
+  // Get first letter for fallback avatar
+  const firstLetter = displayName.charAt(0).toUpperCase();
 
   return (
     <aside
@@ -112,7 +146,7 @@ export function DashboardSidebar({ user }: SidebarProps) {
         <div className="flex items-center justify-between">
           {!collapsed && (
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-linear-to-r from-blue-600 to-purple-600 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
                 <Wallet className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -126,7 +160,7 @@ export function DashboardSidebar({ user }: SidebarProps) {
             </div>
           )}
           {collapsed && (
-            <div className="w-8 h-8 rounded-lg bg-linear-to-r from-blue-600 to-purple-600 flex items-center justify-center mx-auto">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center mx-auto">
               <Wallet className="w-5 h-5 text-white" />
             </div>
           )}
@@ -148,29 +182,61 @@ export function DashboardSidebar({ user }: SidebarProps) {
       {/* User Profile */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
         {!collapsed ? (
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-linear-to-r from-blue-500 to-purple-500 flex items-center justify-center">
-              {user.email?.charAt(0).toUpperCase() || (
-                <UserIcon className="w-6 h-6 text-white" />
+          <Link 
+            href="/dashboard/settings"
+            className="flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded-lg transition-colors cursor-pointer"
+          >
+            <div className="relative w-10 h-10 rounded-full shrink-0 overflow-hidden">
+              {userProfile?.avatarUrl && !imageError ? (
+                <Image
+                  src={userProfile.avatarUrl}
+                  alt={displayName}
+                  fill
+                  className="object-cover"
+                  unoptimized
+                  onError={() => setImageError(true)}
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
+                  <span className="text-white font-semibold text-sm">
+                    {firstLetter}
+                  </span>
+                </div>
               )}
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-medium text-gray-900 dark:text-white truncate">
-                {user.email?.split("@")[0] || "User"}
+                {displayName}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                {user.email}
+                {displayEmail}
               </p>
             </div>
-          </div>
+          </Link>
         ) : (
-          <div className="flex justify-center">
-            <div className="w-10 h-10 rounded-full bg-linear-to-r from-blue-500 to-purple-500 flex items-center justify-center">
-              {user.email?.charAt(0).toUpperCase() || (
-                <UserIcon className="w-6 h-6 text-white" />
+          <Link 
+            href="/dashboard/settings"
+            className="flex justify-center hover:opacity-80 transition-opacity cursor-pointer"
+          >
+            <div className="relative w-10 h-10 rounded-full overflow-hidden">
+              {userProfile?.avatarUrl && !imageError ? (
+                <Image
+                  src={userProfile.avatarUrl}
+                  alt={displayName}
+                  fill
+                  className="object-cover"
+                  unoptimized
+                  onError={() => setImageError(true)}
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
+                  <span className="text-white font-semibold text-sm">
+                    {firstLetter}
+                  </span>
+                </div>
               )}
             </div>
-          </div>
+          </Link>
         )}
       </div>
 
@@ -187,7 +253,7 @@ export function DashboardSidebar({ user }: SidebarProps) {
                 href={item.href}
                 className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
                   isActive
-                    ? "bg-linear-to-r from-blue-50 to-purple-50 dark:from-blue-900/30 dark:to-purple-900/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800"
+                    ? "bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/30 dark:to-purple-900/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800"
                     : "hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
                 }`}
               >
@@ -222,7 +288,7 @@ export function DashboardSidebar({ user }: SidebarProps) {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors relative ${
                   isActive
                     ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white"
                     : "hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
@@ -253,7 +319,7 @@ export function DashboardSidebar({ user }: SidebarProps) {
         {!collapsed ? (
           <div className="space-y-3">
             {/* AI Assistant Quick Action */}
-            <div className="bg-linear-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-3 rounded-lg">
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-3 rounded-lg">
               <p className="text-xs text-gray-600 dark:text-gray-300 mb-1">
                 Need help with transactions?
               </p>
@@ -267,7 +333,7 @@ export function DashboardSidebar({ user }: SidebarProps) {
           </div>
         ) : (
           <div className="flex flex-col items-center space-y-3">
-            <div className="w-8 h-8 rounded-lg bg-linear-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 flex items-center justify-center">
               <HelpCircle className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             </div>
             <LogoutButton />

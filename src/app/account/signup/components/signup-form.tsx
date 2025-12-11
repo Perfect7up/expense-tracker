@@ -1,4 +1,3 @@
-// app/signin/components/signin-form.tsx
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -7,8 +6,8 @@ import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/app/core/lib/supabase/client";
 import {
-  signinSchema,
-  type SigninSchema,
+  signupSchema,
+  type SignupSchema,
 } from "@/app/core/lib/validations/auth";
 import {
   Form,
@@ -20,53 +19,116 @@ import {
 } from "@/app/core/components/ui/form";
 import { Input } from "@/app/core/components/ui/input";
 import { Button } from "@/app/core/components/ui/button";
-import { Eye, EyeOff, Loader2, Mail, Lock } from "lucide-react";
+import { Alert, AlertDescription } from "@/app/core/components/ui/alert";
+import { Checkbox } from "@/app/core/components/ui/checkbox";
+import { Eye, EyeOff, Loader2, Mail, Lock, CheckCircle } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
-import { Alert, AlertDescription } from "@/app/core/components/ui/alert";
 
-export default function SigninForm() {
+export default function SignupForm() {
   const [showPassword, setShowPassword] = useState(false);
+  const [signupSuccess, setSignupSuccess] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
-  const form = useForm<SigninSchema>({
-    resolver: zodResolver(signinSchema),
+  const form = useForm<SignupSchema>({
+    resolver: zodResolver(signupSchema),
     defaultValues: {
+      name: "",
       email: "",
       password: "",
     },
   });
 
   const mutation = useMutation({
-    mutationFn: async (data: SigninSchema) => {
-      const { data: authData, error } = await supabase.auth.signInWithPassword({
+    mutationFn: async (data: SignupSchema) => {
+      const { data: authData, error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
+        options: {
+          data: {
+            full_name: data.name, // store in Supabase metadata
+          },
+        },
       });
-
+  
       if (error) throw new Error(error.message);
+  
+      // Insert into Prisma
+      await fetch("/api/user/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          supabaseId: authData.user?.id,
+          email: data.email,
+          name: data.name,
+        }),
+      });
+  
       return authData;
     },
     onSuccess: () => {
-      router.refresh();
-      router.push("/dashboard");
+      router.push("/account/signin");
     },
     onError: (error: Error) => {
-      // You could use a toast notification here instead
-      console.error("Sign in error:", error.message);
+      console.error("Signup error:", error.message);
     },
   });
-
-  const onSubmit = (data: SigninSchema) => {
+  
+  const onSubmit = (data: SignupSchema) => {
     mutation.mutate(data);
   };
+
+  if (signupSuccess) {
+    return (
+      <div className="space-y-6 text-center py-8">
+        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center mx-auto mb-4">
+          <CheckCircle className="w-8 h-8 text-green-600" />
+        </div>
+        <h3 className="text-xl font-bold text-slate-900">Check Your Email!</h3>
+        <p className="text-slate-600">
+          We've sent a confirmation link to your email address. Please click the
+          link to verify your account and get started.
+        </p>
+        <div className="pt-4">
+          <Button
+            type="button"
+            onClick={() => setSignupSuccess(false)}
+            variant="outline"
+            className="border-blue-200 text-blue-600 hover:bg-blue-50"
+          >
+            Back to Sign Up
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           {/* Email Field */}
+          {/* Name Field */}
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-slate-700">Full Name</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    placeholder="John Doe"
+                    className="h-11 bg-white border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                    disabled={mutation.isPending}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           <FormField
             control={form.control}
             name="email"
@@ -96,15 +158,7 @@ export default function SigninForm() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <div className="flex items-center justify-between">
-                  <FormLabel className="text-slate-700">Password</FormLabel>
-                  <Link
-                    href="/auth/forgot-password"
-                    className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
+                <FormLabel className="text-slate-700">Password</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -130,9 +184,36 @@ export default function SigninForm() {
                   </div>
                 </FormControl>
                 <FormMessage />
+                <p className="text-xs text-slate-500 mt-1">
+                  Must be at least 6 characters long
+                </p>
               </FormItem>
             )}
           />
+
+          {/* Terms Checkbox */}
+          <div className="flex items-start space-x-3">
+            <Checkbox id="terms" disabled={mutation.isPending} />
+            <label
+              htmlFor="terms"
+              className="text-sm text-slate-700 leading-relaxed"
+            >
+              I agree to the{" "}
+              <Link
+                href="/terms"
+                className="text-blue-600 hover:text-blue-700 font-medium"
+              >
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link
+                href="/privacy"
+                className="text-blue-600 hover:text-blue-700 font-medium"
+              >
+                Privacy Policy
+              </Link>
+            </label>
+          </div>
 
           {/* Error Alert */}
           {mutation.isError && (
@@ -152,29 +233,12 @@ export default function SigninForm() {
             {mutation.isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Signing in...
+                Creating Account...
               </>
             ) : (
-              "Sign In"
+              "Create Account"
             )}
           </Button>
-
-          {/* Demo Account Hint */}
-          <div className="text-center">
-            <p className="text-sm text-slate-500">
-              Demo account:{" "}
-              <button
-                type="button"
-                onClick={() => {
-                  form.setValue("email", "demo@financiai.com");
-                  form.setValue("password", "demopassword123");
-                }}
-                className="font-medium text-blue-600 hover:text-blue-700 transition-colors"
-              >
-                Use demo credentials
-              </button>
-            </p>
-          </div>
         </form>
       </Form>
     </>

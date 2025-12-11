@@ -10,14 +10,9 @@ async function fetchKpi(): Promise<KpiData> {
 
   const data: KpiData = await res.json();
 
-  if (!data.expensesByCategory || data.expensesByCategory.length === 0) {
-    data.expensesByCategory = [
-      { name: "Food & Dining", value: 420 },
-      { name: "Shopping", value: 350 },
-      { name: "Transportation", value: 220 },
-      { name: "Entertainment", value: 180 },
-      { name: "Utilities", value: 120 },
-    ];
+  // Ensure expensesByCategory exists as an empty array if not provided
+  if (!data.expensesByCategory) {
+    data.expensesByCategory = [];
   }
 
   return data;

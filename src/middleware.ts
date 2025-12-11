@@ -5,7 +5,7 @@ import { updateSession } from "@/app/core/lib/supabase/middleware";
 export async function middleware(request: NextRequest) {
   // 1. Let the callback pass through
   // FIX: Must return NextResponse.next() instead of just returning undefined
-  if (request.nextUrl.pathname.startsWith("/api/auth/callback")) {
+  if (request.nextUrl.pathname.startsWith("/auth/callback")) {
     return NextResponse.next();
   }
 

@@ -47,7 +47,7 @@ export async function updateSession(request: NextRequest) {
   // A. Protected Routes (Dashboard) -> Redirect to Sign In if not logged in
   if (request.nextUrl.pathname.startsWith("/dashboard") && !user) {
     const url = request.nextUrl.clone();
-    url.pathname = "/auth/signin";
+    url.pathname = "/account/signin";
     // Optional: Add ?next=/dashboard to redirect back after login
     url.searchParams.set("next", request.nextUrl.pathname);
     return NextResponse.redirect(url);

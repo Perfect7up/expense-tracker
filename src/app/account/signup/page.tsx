@@ -1,4 +1,3 @@
-// app/signup/page.tsx
 import { Suspense } from "react";
 import {
   Card,
@@ -14,8 +13,6 @@ import {
   TrendingUp,
   Users,
   Target,
-  ArrowLeft,
-  ArrowLeftCircle,
   ArrowLeftCircleIcon,
 } from "lucide-react";
 import SignupForm from "./components/signup-form";
@@ -62,7 +59,7 @@ export default function SignupPage() {
             </Link>
             Already have an account?{" "}
             <Link
-              href="/auth/signin"
+              href="/acount/signin"
               className="font-semibold text-blue-600 hover:text-blue-700 transition-colors"
             >
               Sign in
@@ -203,7 +200,7 @@ export default function SignupPage() {
                 {/* Sign In Link */}
                 <div className="text-center">
                   <Link
-                    href="/signin"
+                    href="/account/signin"
                     className="inline-flex items-center justify-center w-full py-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors text-slate-700 font-medium"
                   >
                     Sign In to Existing Account

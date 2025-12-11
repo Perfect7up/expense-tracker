@@ -61,7 +61,7 @@ export default function Navbar() {
               </div>
 
               <div className="flex items-center gap-4">
-                <Link href="/auth/signin">
+                <Link href="/account/signin">
                   <Button
                     variant="ghost"
                     className="rounded-full text-slate-700 hover:text-blue-600 hover:bg-blue-50"
@@ -69,7 +69,7 @@ export default function Navbar() {
                     Sign In
                   </Button>
                 </Link>
-                <Link href="/auth/signup" className="flex items-center">
+                <Link href="/account/signup" className="flex items-center">
                   <Button className="rounded-full bg-linear-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl transition-all duration-300">
                     Get Started Free
                     <Sparkles className="ml-2 w-4 h-4" />
@@ -107,7 +107,7 @@ export default function Navbar() {
                 ))}
               </div>
               <div className="flex flex-col gap-3 mt-8 pt-6 border-t border-slate-200">
-                <Link href="/auth/signin">
+                <Link href="/account/signin">
                   <Button
                     variant="outline"
                     className="w-full py-3.5 rounded-xl border-slate-300 text-slate-700 hover:bg-slate-100 hover:border-blue-300"
@@ -116,7 +116,7 @@ export default function Navbar() {
                     Sign In
                   </Button>
                 </Link>
-                <Link href="/auth/signup" className="flex items-center">
+                <Link href="/account/signup" className="flex items-center">
                   <Button
                     className="w-full py-3.5 rounded-xl bg-linear-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg shadow-blue-500/30"
                     onClick={() => setIsMobileMenuOpen(false)}

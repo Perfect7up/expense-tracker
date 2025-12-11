@@ -1,6 +1,6 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useDashboardStore } from "./store/dashboard-store";
 import { Button } from "@/app/core/components/ui/button";
 import { Badge } from "@/app/core/components/ui/badge";
@@ -19,9 +19,25 @@ import { ExpensePieChart } from "./components/expense-pie-chart";
 import IncomeExpenseBarChart from "./components/income-expense-bar-chart";
 import MonthlyTrendChart from "./components/monthly-trend-chart";
 
+type User = {
+  id: string;
+  name: string | null;
+  email: string;
+};
+
 export default function DashboardPage() {
   const queryClient = useQueryClient();
   const { activeTab, setActiveTab } = useDashboardStore();
+
+  // Fetch current user
+  const { data: user, isLoading: isUserLoading } = useQuery<User>({
+    queryKey: ["currentUser"],
+    queryFn: async () => {
+      const res = await fetch("/api/user/me");
+      if (!res.ok) throw new Error("Failed to fetch user");
+      return res.json() as Promise<User>;
+    },
+  });
 
   const handleRefresh = () => {
     ["kpi", "transactions", "expenses", "incomes"].forEach((key) =>
@@ -31,11 +47,16 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div className="space-y-1">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
-              Dashboard
+              {isUserLoading
+                ? "Dashboard"
+                : user?.name
+                  ? `Welcome back, ${user.name}!`
+                  : "Dashboard"}
             </h1>
             <Badge
               variant="outline"
@@ -44,6 +65,7 @@ export default function DashboardPage() {
               <div className="w-2 h-2 rounded-full bg-green-500 mr-1.5"></div>
               Live Updates
             </Badge>
+            {!isUserLoading && !user?.name }
           </div>
           <p className="text-slate-600">
             Track your finances in real-time with AI-powered insights
@@ -61,7 +83,7 @@ export default function DashboardPage() {
             Refresh
           </Button>
           <Button
-            className="flex items-center gap-2 bg-linear-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg shadow-blue-500/30 flex-1 lg:flex-none"
+            className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg shadow-blue-500/30 flex-1 lg:flex-none"
             size="sm"
           >
             <Plus className="w-4 h-4" />

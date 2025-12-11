@@ -1,3 +1,4 @@
+// app/signin/components/signin-form.tsx
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -6,8 +7,8 @@ import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/app/core/lib/supabase/client";
 import {
-  signupSchema,
-  type SignupSchema,
+  signinSchema,
+  type SigninSchema,
 } from "@/app/core/lib/validations/auth";
 import {
   Form,
@@ -19,20 +20,18 @@ import {
 } from "@/app/core/components/ui/form";
 import { Input } from "@/app/core/components/ui/input";
 import { Button } from "@/app/core/components/ui/button";
-import { Alert, AlertDescription } from "@/app/core/components/ui/alert";
-import { Checkbox } from "@/app/core/components/ui/checkbox";
-import { Eye, EyeOff, Loader2, Mail, Lock, CheckCircle } from "lucide-react";
+import { Eye, EyeOff, Loader2, Mail, Lock } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
+import { Alert, AlertDescription } from "@/app/core/components/ui/alert";
 
-export default function SignupForm() {
+export default function SigninForm() {
   const [showPassword, setShowPassword] = useState(false);
-  const [signupSuccess, setSignupSuccess] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
-  const form = useForm<SignupSchema>({
-    resolver: zodResolver(signupSchema),
+  const form = useForm<SigninSchema>({
+    resolver: zodResolver(signinSchema),
     defaultValues: {
       email: "",
       password: "",
@@ -40,62 +39,28 @@ export default function SignupForm() {
   });
 
   const mutation = useMutation({
-    mutationFn: async (data: SignupSchema) => {
-      const { data: authData, error } = await supabase.auth.signUp({
+    mutationFn: async (data: SigninSchema) => {
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
       });
 
       if (error) throw new Error(error.message);
       return authData;
     },
-    onSuccess: (data) => {
-      if (data.session) {
-        // User is logged in immediately (email confirmation disabled)
-        router.refresh();
-        router.push("/dashboard");
-      } else {
-        // Email confirmation required
-        setSignupSuccess(true);
-        form.reset();
-      }
+    onSuccess: () => {
+      router.refresh();
+      router.push("/dashboard");
     },
     onError: (error: Error) => {
-      console.error("Sign up error:", error.message);
+      // You could use a toast notification here instead
+      console.error("Sign in error:", error.message);
     },
   });
 
-  const onSubmit = (data: SignupSchema) => {
+  const onSubmit = (data: SigninSchema) => {
     mutation.mutate(data);
   };
-
-  if (signupSuccess) {
-    return (
-      <div className="space-y-6 text-center py-8">
-        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center mx-auto mb-4">
-          <CheckCircle className="w-8 h-8 text-green-600" />
-        </div>
-        <h3 className="text-xl font-bold text-slate-900">Check Your Email!</h3>
-        <p className="text-slate-600">
-          We've sent a confirmation link to your email address. Please click the
-          link to verify your account and get started.
-        </p>
-        <div className="pt-4">
-          <Button
-            type="button"
-            onClick={() => setSignupSuccess(false)}
-            variant="outline"
-            className="border-blue-200 text-blue-600 hover:bg-blue-50"
-          >
-            Back to Sign Up
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <>
@@ -131,7 +96,15 @@ export default function SignupForm() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-slate-700">Password</FormLabel>
+                <div className="flex items-center justify-between">
+                  <FormLabel className="text-slate-700">Password</FormLabel>
+                  <Link
+                    href="/account/forgot-password"
+                    className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
                 <FormControl>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -157,36 +130,9 @@ export default function SignupForm() {
                   </div>
                 </FormControl>
                 <FormMessage />
-                <p className="text-xs text-slate-500 mt-1">
-                  Must be at least 6 characters long
-                </p>
               </FormItem>
             )}
           />
-
-          {/* Terms Checkbox */}
-          <div className="flex items-start space-x-3">
-            <Checkbox id="terms" disabled={mutation.isPending} />
-            <label
-              htmlFor="terms"
-              className="text-sm text-slate-700 leading-relaxed"
-            >
-              I agree to the{" "}
-              <Link
-                href="/terms"
-                className="text-blue-600 hover:text-blue-700 font-medium"
-              >
-                Terms of Service
-              </Link>{" "}
-              and{" "}
-              <Link
-                href="/privacy"
-                className="text-blue-600 hover:text-blue-700 font-medium"
-              >
-                Privacy Policy
-              </Link>
-            </label>
-          </div>
 
           {/* Error Alert */}
           {mutation.isError && (
@@ -206,12 +152,29 @@ export default function SignupForm() {
             {mutation.isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating Account...
+                Signing in...
               </>
             ) : (
-              "Create Account"
+              "Sign In"
             )}
           </Button>
+
+          {/* Demo Account Hint */}
+          <div className="text-center">
+            <p className="text-sm text-slate-500">
+              Demo account:{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  form.setValue("email", "demo@financiai.com");
+                  form.setValue("password", "demopassword123");
+                }}
+                className="font-medium text-blue-600 hover:text-blue-700 transition-colors"
+              >
+                Use demo credentials
+              </button>
+            </p>
+          </div>
         </form>
       </Form>
     </>
