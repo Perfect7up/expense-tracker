@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useSubscription } from "@/app/core/hooks/use-subscription";
+import { useSubscription } from "@/app/dashboard/subscription/hooks/use-subscription";
 import { Button } from "@/app/core/components/ui/button";
 import { Plus, Pencil, RotateCw, Calendar, Tag, Activity } from "lucide-react";
 import { Badge } from "@/app/core/components/ui/badge";

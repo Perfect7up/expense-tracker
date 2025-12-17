@@ -34,7 +34,7 @@ import {
   SUBSCRIPTION_CATEGORIES,
   CYCLE_OPTIONS,
   CURRENCY_OPTIONS,
-} from "@/app/core/schema/subscription";
+} from "@/app/dashboard/subscription/schema/subscription";
 
 // Note: We don't import SubscriptionFormValues here to avoid generic conflicts.
 // We let Zod infer the type.

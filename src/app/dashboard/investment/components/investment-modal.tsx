@@ -21,8 +21,8 @@ import { FormModal } from "@/app/core/components/shared/form-modal";
 import { FormInput } from "@/app/core/components/shared/form-input";
 import { FormSelect } from "@/app/core/components/shared/form-select";
 
-import { investmentFormSchema, InvestmentFormValues } from "@/app/core/schema/investments";
-import { Investment } from "@/app/core/types/investments";
+import { investmentFormSchema, InvestmentFormValues } from "@/app/dashboard/investment/schema/investments";
+import { Investment } from "@/app/dashboard/investment/types/investments";
 
 const INVESTMENT_TYPES = [
   { value: "buy", label: "Buy (Long)" },

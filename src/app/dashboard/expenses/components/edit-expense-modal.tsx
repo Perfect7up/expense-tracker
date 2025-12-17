@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import { expenseSchema } from "@/app/dashboard/expenses/schema/expense";
 import { useExpenses } from "../hooks/use-expenses";
 import { useExpenseCategories } from "@/app/core/hooks/use-categories";
-import { useSubscription } from "@/app/core/hooks/use-subscription";
+import { useSubscription } from "@/app/dashboard/subscription/hooks/use-subscription";
 import { useEditExpenseStore } from "../store/use-edit-expense-store";
 import { GenericEditModal } from "@/app/core/components/shared/generic-edit-modal";
 

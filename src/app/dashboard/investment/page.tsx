@@ -14,8 +14,8 @@ import { Button } from "@/app/core/components/ui/button";
 import { InvestmentModal } from "./components/investment-modal";
 import { InvestmentList } from "./components/investment-list";
 
-import { Investment } from "@/app/core/types/investments";
-import { InvestmentFormValues } from "@/app/core/schema/investments";
+import { Investment } from "@/app/dashboard/investment/types/investments";
+import { InvestmentFormValues } from "@/app/dashboard/investment/schema/investments";
 
 export default function InvestmentsPage() {
   const [data, setData] = useState<Investment[]>([]);

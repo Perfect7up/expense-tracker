@@ -22,7 +22,7 @@ import {
 } from "@/app/core/components/ui/dropdown-menu";
 
 import { GenericList, SortOption } from "@/app/core/components/shared/generic-list"; // Adjust path if needed
-import { Investment } from "@/app/core/types/investments";
+import { Investment } from "@/app/dashboard/investment/types/investments";
 
 interface Props {
   data: Investment[];

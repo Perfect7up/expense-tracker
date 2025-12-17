@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { Expense } from "@/app/core/types/expenses";
+import { Expense } from "@/app/dashboard/expenses/types/expenses";
 
 interface EditExpenseState {
   isOpen: boolean;

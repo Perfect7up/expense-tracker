@@ -8,8 +8,8 @@ import { BackgroundEffects, PageHeader, StatsGrid } from "@/app/core/components/
 import { GenericEditModal } from "@/app/core/components/shared/generic-edit-modal";
 import { SubscriptionForm } from "./components/subscription-form";
 import { SubscriptionList } from "./components/subscription-list";
-import { useSubscription } from "@/app/core/hooks/use-subscription";
-import { subscriptionSchema, SUBSCRIPTION_CATEGORIES } from "@/app/core/schema/subscription";
+import { useSubscription } from "@/app/dashboard/subscription/hooks/use-subscription";
+import { subscriptionSchema, SUBSCRIPTION_CATEGORIES } from "@/app/dashboard/subscription/schema/subscription";
 
 const CYCLE_OPTIONS = [
   { value: "DAILY", label: "Daily" },
