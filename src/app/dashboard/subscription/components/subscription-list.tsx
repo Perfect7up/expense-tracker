@@ -5,7 +5,7 @@ import { useSubscription } from "@/app/core/hooks/use-subscription";
 import { Button } from "@/app/core/components/ui/button";
 import { Plus, Pencil, RotateCw, Calendar, Tag, Activity } from "lucide-react";
 import { Badge } from "@/app/core/components/ui/badge";
-import { GenericList } from "@/app/core/components/shared/generic-list";
+import { GenericList, type SortOption } from "@/app/core/components/shared/generic-list";
 import { format } from "date-fns";
 
 interface SubscriptionListProps {
@@ -17,7 +17,7 @@ interface SubscriptionListProps {
 export function SubscriptionList({ onEdit, onAdd }: SubscriptionListProps) {
   const { subscriptions, isLoading, isError, error, formatCycle } = useSubscription();
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState<"date" | "amount" | "category" | "name">("date");
+  const [sortBy, setSortBy] = useState<SortOption>("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc"); 
   const [currentPage, setCurrentPage] = useState(1);
 
