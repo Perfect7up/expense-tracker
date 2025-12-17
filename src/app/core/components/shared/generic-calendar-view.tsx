@@ -31,6 +31,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { Badge } from "@/app/core/components/ui/badge";
+import Loading from "./loading";
 
 interface CalendarDataItem {
   date: Date;
@@ -278,9 +279,7 @@ export function GenericCalendarView({
 
   if (isLoading) {
     return (
-      <div className="animate-pulse">
-        <div className="h-64 bg-slate-100 rounded-2xl"></div>
-      </div>
+      <Loading />
     );
   }
 

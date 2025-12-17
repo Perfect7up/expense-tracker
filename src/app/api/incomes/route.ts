@@ -3,35 +3,29 @@ import { getAuthenticatedUser } from "@/app/core/lib/supabase/server";
 import prisma from "@/app/core/lib/prisma";
 import { z } from "zod";
 
-// --- ROBUST SCHEMA (Matches Expense Logic) ---
+// --- ROBUST SCHEMA ---
 const createIncomeSchema = z.object({
   amount: z.coerce.number().positive("Amount must be positive"),
-
-  // Transform empty strings to null for text fields
-  source: z
-    .string()
-    .nullish()
-    .transform((v) => v || null),
-  note: z
-    .string()
-    .nullish()
-    .transform((v) => v || null),
+  
+  // Transform empty strings to null
+  source: z.string().nullish().transform((v) => v || null),
+  note: z.string().nullish().transform((v) => v || null),
 
   // Safe Date Coercion
   receivedAt: z.union([z.string(), z.date()]).pipe(z.coerce.date()),
 
   currency: z.string().default("USD"),
 
-  // Safe Category Handling (prevents "Malformed UUID" or FK errors)
-  categoryId: z
-    .string()
-    .nullish()
-    .transform((val) => {
-      if (!val || val === "" || val === "none" || val === "uncategorized") {
-        return null;
-      }
-      return val;
-    }),
+  // Safe Category Handling
+  categoryId: z.string().nullish().transform((val) => {
+    if (!val || val === "" || val === "none" || val === "uncategorized") {
+      return null;
+    }
+    return val;
+  }),
+
+  // New: Investment Link
+  investmentId: z.string().uuid().nullish().transform((v) => v || null),
 });
 
 // --- Helper: Upsert user ---
@@ -56,7 +50,12 @@ export async function GET() {
     const incomes = await prisma.income.findMany({
       where: { userId: dbUser.id },
       orderBy: { receivedAt: "desc" },
-      include: { category: true },
+      include: { 
+        category: true,
+        investment: { // Include investment details
+          select: { id: true, name: true, symbol: true }
+        }
+      },
     });
 
     return NextResponse.json(
@@ -64,6 +63,9 @@ export async function GET() {
         ...i,
         amount: Number(i.amount),
         categoryName: i.category?.name || "Uncategorized",
+        // Flatten investment details for easier frontend use
+        investmentName: i.investment?.name || null,
+        investmentSymbol: i.investment?.symbol || null,
       }))
     );
   } catch (error) {
@@ -102,20 +104,29 @@ export async function POST(request: NextRequest) {
     const dbUser = await getDbUser(authUser);
     const data = validation.data;
 
-    // --- CRITICAL FIX: Verify Category Existence ---
+    // 1. Verify Category (Existing Logic)
     let finalCategoryId = data.categoryId;
-
     if (finalCategoryId) {
       const categoryExists = await prisma.category.findUnique({
         where: { id: finalCategoryId },
       });
-
-      // If category ID is stale/invalid, force it to null to allow creation
       if (!categoryExists) {
-        console.warn(
-          `Category ID ${finalCategoryId} not found. Defaulting to Uncategorized.`
-        );
         finalCategoryId = null;
+      }
+    }
+
+    // 2. Verify Investment (New Logic)
+    // Ensure the investment belongs to the user before linking
+    let finalInvestmentId = data.investmentId;
+    if (finalInvestmentId) {
+      const investmentExists = await prisma.investment.findFirst({
+        where: { id: finalInvestmentId, userId: dbUser.id },
+      });
+      if (!investmentExists) {
+        return NextResponse.json(
+          { error: "Investment not found or access denied" },
+          { status: 404 }
+        );
       }
     }
 
@@ -128,14 +139,19 @@ export async function POST(request: NextRequest) {
         receivedAt: data.receivedAt,
         currency: data.currency,
         categoryId: finalCategoryId,
+        investmentId: finalInvestmentId, // Link created
       },
-      include: { category: true },
+      include: { 
+        category: true,
+        investment: true 
+      },
     });
 
     return NextResponse.json({
       ...income,
       amount: Number(income.amount),
       categoryName: income.category?.name || "Uncategorized",
+      investmentName: income.investment?.name || null,
     });
   } catch (error) {
     console.error("POST Income Error:", error);

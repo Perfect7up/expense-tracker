@@ -28,6 +28,7 @@ import {
 import { useKpi } from "../store/kpi-store";
 import { COLORS } from "../constants/constants";
 import { cn } from "@/app/core/lib/utils";
+import Loading from "@/app/core/components/shared/loading";
 
 // Convert hex colors to rgba for transparency
 const getColorWithAlpha = (hex: string, alpha: number) => {
@@ -135,28 +136,7 @@ export const ExpensePieChart = () => {
   // Loading state
   if (isLoading) {
     return (
-      <Card className="relative overflow-hidden border-slate-200/50 bg-white/80 backdrop-blur-sm shadow-lg">
-        <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-blue-500 to-cyan-400" />
-        <CardHeader>
-          <Skeleton className="h-6 w-48" />
-          <Skeleton className="h-4 w-64" />
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
-            <div className="h-80 w-full flex items-center justify-center">
-              <div className="relative">
-                <Skeleton className="w-64 h-64 rounded-full" />
-                <Skeleton className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full" />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Skeleton className="h-24 rounded-xl" />
-              <Skeleton className="h-24 rounded-xl" />
-              <Skeleton className="h-24 rounded-xl" />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <Loading />
     );
   }
 

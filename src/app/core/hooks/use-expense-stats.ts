@@ -5,7 +5,6 @@ import { useExpenses } from "./use-expenses";
 export function useExpenseStats() {
   const { expenses, isLoading } = useExpenses();
 
-  // Calculate current month total
   const getCurrentMonthTotal = () => {
     if (!expenses) return 0;
     const now = new Date();

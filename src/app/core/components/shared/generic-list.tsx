@@ -12,20 +12,20 @@ import {
 } from "lucide-react";
 import { Button } from "@/app/core/components/ui/button";
 
+export type ListType = "expense" | "income" | "subscription" | "investment";
+export type SortOption = "date" | "amount" | "category" | "name" | "subscription" | "return" | "value";
+
 interface GenericListProps<T> {
-  // Data
   data: T[];
   isLoading: boolean;
   isError: boolean;
   error?: Error;
 
-  // Header Info
   title: string;
   description: string;
-  type: "expense" | "income";
+  type: ListType;
   addButton?: React.ReactNode;
 
-  // Render Props
   renderItem: (item: T, onEdit?: (item: T) => void) => React.ReactNode;
   renderEmptyState: (
     searchTerm: string,
@@ -35,31 +35,29 @@ interface GenericListProps<T> {
   onEdit?: (item: T) => void;
   onExport?: (data: T[], title: string) => void;
 
-  // Search (Controlled by Parent)
   searchTerm: string;
   onSearchChange: (term: string) => void;
 
-  // Sorting (Controlled by Parent)
   hasSorting?: boolean;
-  sortBy?: "date" | "amount" | "category";
-  onSortByChange?: (sort: "date" | "amount" | "category") => void;
+  sortBy?: SortOption; 
+  onSortByChange?: (sort: SortOption) => void;
 
   sortOrder?: "asc" | "desc";
   onSortOrderChange?: (order: "asc" | "desc") => void;
 
-  // Pagination (Controlled by Parent)
   currentPage: number;
   onPageChange: (page: number) => void;
   itemsPerPage?: number;
 
-  // Data Accessors
   getItemDate: (item: T) => Date;
   getItemAmount: (item: T) => number;
   getItemCategory: (item: T) => string | null | undefined;
   getItemCurrency: (item: T) => string;
+  getItemName?: (item: T) => string; 
+  getItemSubscription?: (item: T) => string | null | undefined;
+  getItemReturn?: (item: T) => number;
+  getItemValue?: (item: T) => number;
 }
-
-// --- Component ---
 
 export function GenericList<T extends { id: string | number; note?: string }>({
   data,
@@ -74,33 +72,30 @@ export function GenericList<T extends { id: string | number; note?: string }>({
   renderEmptyState,
   onEdit,
   onExport,
-  // Search
   searchTerm,
   onSearchChange,
-  // Sorting
   hasSorting,
   sortBy = "date",
   onSortByChange,
   sortOrder = "desc",
   onSortOrderChange,
-  // Pagination
   currentPage,
   onPageChange,
   itemsPerPage = 10,
-  // Accessors
   getItemDate,
   getItemAmount,
   getItemCategory,
   getItemCurrency,
+  getItemName, 
+  getItemSubscription,
+  getItemReturn,
+  getItemValue,
 }: GenericListProps<T>) {
-  // --- 1. Derived State (Search & Sort ONLY) ---
-
   const processedData = useMemo(() => {
     if (!data) return [];
 
     let result = [...data];
 
-    // A. Search Logic
     if (searchTerm) {
       const lowerTerm = searchTerm.toLowerCase();
       result = result.filter((item) => {
@@ -108,17 +103,24 @@ export function GenericList<T extends { id: string | number; note?: string }>({
         const category = getItemCategory(item)?.toLowerCase() || "";
         const note = item.note?.toLowerCase() || "";
         const currency = getItemCurrency(item).toLowerCase();
+        const name = getItemName ? getItemName(item).toLowerCase() : "";
+        const subscription = getItemSubscription ? getItemSubscription(item)?.toLowerCase() || "" : "";
+        const itemReturn = getItemReturn ? getItemReturn(item).toString() : "";
+        const itemValue = getItemValue ? getItemValue(item).toString() : "";
 
         return (
           note.includes(lowerTerm) ||
           amount.includes(lowerTerm) ||
           category.includes(lowerTerm) ||
-          currency.includes(lowerTerm)
+          currency.includes(lowerTerm) ||
+          name.includes(lowerTerm) ||
+          subscription.includes(lowerTerm) ||
+          itemReturn.includes(lowerTerm) ||
+          itemValue.includes(lowerTerm)
         );
       });
     }
 
-    // B. Sorting Logic
     if (hasSorting && sortBy) {
       result.sort((a, b) => {
         let valA: any, valB: any;
@@ -131,6 +133,22 @@ export function GenericList<T extends { id: string | number; note?: string }>({
           case "category":
             valA = getItemCategory(a) || "";
             valB = getItemCategory(b) || "";
+            break;
+          case "name":
+            valA = getItemName ? getItemName(a) : "";
+            valB = getItemName ? getItemName(b) : "";
+            break;
+          case "subscription":
+            valA = getItemSubscription ? getItemSubscription(a) || "" : "";
+            valB = getItemSubscription ? getItemSubscription(b) || "" : "";
+            break;
+          case "return":
+            valA = getItemReturn ? getItemReturn(a) : 0;
+            valB = getItemReturn ? getItemReturn(b) : 0;
+            break;
+          case "value":
+            valA = getItemValue ? getItemValue(a) : 0;
+            valB = getItemValue ? getItemValue(b) : 0;
             break;
           case "date":
           default:
@@ -156,9 +174,12 @@ export function GenericList<T extends { id: string | number; note?: string }>({
     getItemCategory,
     getItemCurrency,
     getItemDate,
+    getItemName,
+    getItemSubscription,
+    getItemReturn,
+    getItemValue,
   ]);
 
-  // --- 2. Pagination Logic ---
   const totalItems = processedData.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
@@ -168,9 +189,7 @@ export function GenericList<T extends { id: string | number; note?: string }>({
     startIndex + itemsPerPage
   );
 
-  const hasFilters = !!searchTerm; // Only search counts as a filter now
-
-  // --- 3. Handlers ---
+  const hasFilters = !!searchTerm;
 
   const handleSearch = (value: string) => {
     onSearchChange(value);
@@ -178,7 +197,7 @@ export function GenericList<T extends { id: string | number; note?: string }>({
   };
 
   const handleSortByChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    if (onSortByChange) onSortByChange(e.target.value as any);
+    if (onSortByChange) onSortByChange(e.target.value as SortOption);
     onPageChange(1);
   };
 
@@ -193,8 +212,6 @@ export function GenericList<T extends { id: string | number; note?: string }>({
     onSearchChange("");
     onPageChange(1);
   };
-
-  // --- 4. Render ---
 
   if (isError) {
     return (
@@ -234,14 +251,20 @@ export function GenericList<T extends { id: string | number; note?: string }>({
         </div>
       </div>
 
-      {/* Toolbar Section (Search & Sort) */}
+      {/* Toolbar Section */}
       <div className="bg-white p-4 rounded-xl border border-slate-200/60 shadow-sm space-y-4 md:space-y-0 md:flex md:items-center md:gap-4">
         {/* Search */}
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Search by note, amount, category..."
+            placeholder={
+              type === "subscription" 
+                ? "Search by name, amount, category..." 
+                : type === "investment"
+                ? "Search by name, symbol, category, returns..."
+                : "Search by note, amount, category, subscription..."
+            }
             value={searchTerm}
             onChange={(e) => handleSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
@@ -260,6 +283,10 @@ export function GenericList<T extends { id: string | number; note?: string }>({
                 <option value="date">Date</option>
                 <option value="amount">Amount</option>
                 <option value="category">Category</option>
+                {getItemName && <option value="name">Name</option>}
+                {getItemSubscription && <option value="subscription">Subscription</option>}
+                {getItemReturn && <option value="return">Return</option>}
+                {getItemValue && <option value="value">Value</option>}
               </select>
               <div className="w-px h-4 bg-slate-300 mx-1" />
               <button
@@ -280,7 +307,7 @@ export function GenericList<T extends { id: string | number; note?: string }>({
         </div>
       </div>
 
-      {/* Filter Summary (Optional) */}
+      {/* Filter Summary */}
       {hasFilters && (
         <div className="flex items-center gap-2 text-sm text-slate-500">
           <Filter className="w-3 h-3" />
@@ -338,7 +365,6 @@ export function GenericList<T extends { id: string | number; note?: string }>({
               <ChevronLeft className="h-4 w-4" />
             </Button>
 
-            {/* Simple Page Indicator */}
             <div className="flex items-center gap-1">
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                 let p = i + 1;
@@ -355,10 +381,8 @@ export function GenericList<T extends { id: string | number; note?: string }>({
                     onClick={() => onPageChange(p)}
                     className={`h-9 w-9 p-0 ${
                       currentPage === p
-                        ? type === "income"
-                          ? "bg-blue-600"
-                          : "bg-slate-900"
-                        : "text-slate-600"
+                        ? "bg-blue-600 hover:bg-blue-700"
+                        : "text-slate-600 hover:bg-slate-100"
                     }`}
                   >
                     {p}

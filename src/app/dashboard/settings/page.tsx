@@ -1,339 +1,354 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSettings } from "./hooks/use-settings";
+import { cn } from "@/app/core/lib/utils";
 import { toast } from "sonner";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { create } from "zustand";
-import Image from "next/image";
+import { createClient } from "@/app/core/lib/supabase/client"; // 1. Added Supabase import
 
-// --- Types ---
-type User = {
-  email: string;
-  name?: string | null;
-  avatarUrl?: string | null;
-};
+// Icons
+import {
+  User as UserIcon,
+  Shield,
+  AlertTriangle,
+  Settings as SettingsIcon,
+  CheckCircle2,
+  Calendar,
+  Lock,
+  ChevronRight,
+  LogOut,
+  Mail,
+  Smartphone,
+} from "lucide-react";
 
-// --- Zustand Store ---
-type UserStore = {
-  user: User | null;
-  setUser: (user: User) => void;
-};
+// Shared Components
+import {
+  BackgroundEffects,
+  PageHeader,
+  StatsGrid,
+} from "@/app/core/components/shared/layout";
+import { Button } from "@/app/core/components/ui/button";
 
-export const useUserStore = create<UserStore>((set) => ({
-  user: null,
-  setUser: (user) => set({ user }),
-}));
+// Sub-components
+import SettingsSkeleton from "./components/settings-skeleton";
+import SettingsError from "./components/settings-error";
+import AvatarSection from "./components/avatar-section";
+import PersonalInfoSection from "./components/personal-info-section";
+import SecuritySection from "./components/security-section";
+import DangerZoneSection from "./components/danger-zone-section";
+import { LogoutModal } from "../components/logout-modal"; // Ensure this path is correct based on your folder structure
 
-// --- Schemas ---
-const updateNameSchema = z.object({
-  name: z.string().min(1, "Name is required").max(100),
-});
-
-// --- API Calls ---
-const fetchUser = async (): Promise<User> => {
-  const res = await fetch("/api/user");
-  if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.error || "Failed to fetch user");
-  }
-  return res.json();
-};
-
-const updateUser = async (data: { 
-  name?: string; 
-  avatar?: File; 
-  resetPassword?: boolean 
-}) => {
-  const formData = new FormData();
-  
-  if (data.name) formData.append("name", data.name);
-  if (data.avatar) formData.append("avatar", data.avatar);
-  if (data.resetPassword) formData.append("resetPassword", "true");
-
-  const res = await fetch("/api/user", {
-    method: "PATCH",
-    body: formData,
-  });
-
-  const json = await res.json();
-  if (!res.ok) {
-    console.error("Update error response:", json);
-    throw new Error(json.error || json.details || "Failed to update");
-  }
-  return json;
-};
-
-const deleteUser = async () => {
-  const res = await fetch("/api/user", { method: "DELETE" });
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.error || "Failed to delete account");
-  return json;
-};
-
-// --- Settings Page Component ---
 export default function SettingsPage() {
-  const queryClient = useQueryClient();
-  const { user, setUser } = useUserStore();
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState("profile");
+  
+  // State for Logout
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  
+  // 2. Initialize Supabase
+  const supabase = createClient();
+  
+  const { data: user, isLoading, error, refetch } = useSettings();
 
-  // Fetch User Data
-  const { data: fetchedUser, isLoading, error: fetchError } = useQuery({
-    queryKey: ["user"],
-    queryFn: fetchUser,
-    retry: 1,
-  });
+  // Navigation Tabs configuration
+  const tabs = [
+    {
+      value: "profile",
+      icon: <UserIcon className="h-4 w-4" />,
+      label: "Profile",
+      color: "from-blue-500 to-cyan-400",
+      description: "Manage your personal information",
+    },
+    {
+      value: "security",
+      icon: <Shield className="h-4 w-4" />,
+      label: "Security",
+      color: "from-purple-500 to-pink-400",
+      description: "Password and authentication",
+    },
+    {
+      value: "danger",
+      icon: <AlertTriangle className="h-4 w-4" />,
+      label: "Danger Zone",
+      color: "from-red-500 to-orange-400",
+      description: "Delete account and data",
+    },
+  ];
 
-  // Debug fetched user
-  useEffect(() => {
-    console.log("Fetched user data:", fetchedUser);
-    if (fetchError) {
-      console.error("Fetch user error:", fetchError);
-    }
-  }, [fetchedUser, fetchError]);
+  // Mock Stats for the Header Grid
+  const stats = [
+    {
+      title: "Account Status",
+      value: "Active",
+      description: "Profile is visible",
+      icon: "checkCircle" as const,
+      iconBg: "bg-linear-to-br from-emerald-500 to-green-400",
+      loading: isLoading,
+    },
+    {
+      title: "Member Since",
+      value: user ? new Date(user.createdAt || Date.now()).getFullYear().toString() : "...",
+      description: "Registration year",
+      icon: "calendar" as const,
+      iconBg: "bg-linear-to-br from-blue-500 to-cyan-400",
+      loading: isLoading,
+    },
+    {
+      title: "Security Level",
+      value: "High",
+      description: "2FA is enabled",
+      icon: "shield" as const,
+      iconBg: "bg-linear-to-br from-purple-500 to-pink-400",
+      loading: isLoading,
+    },
+    {
+      title: "Plan",
+      value: "Free",
+      description: "Current subscription",
+      icon: "creditCard" as const,
+      iconBg: "bg-linear-to-br from-orange-500 to-amber-400",
+      loading: isLoading,
+    },
+  ];
 
-  // Sync fetched data to store and forms
-  useEffect(() => {
-    if (fetchedUser) {
-      setUser(fetchedUser);
-      nameForm.reset({ name: fetchedUser.name || "" });
-      setAvatarPreview(fetchedUser.avatarUrl || null);
-    }
-  }, [fetchedUser]);
+  // 3. Updated Handle Logout Logic (Supabase)
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
 
-  // --- Mutations ---
-  const updateMutation = useMutation({
-    mutationFn: updateUser,
-    onSuccess: (data) => {
-      console.log("Update success:", data);
-      if (data.user) {
-        queryClient.setQueryData(["user"], data.user);
-        setUser(data.user);
-        setAvatarPreview(data.user.avatarUrl || null);
-      } else {
-        queryClient.invalidateQueries({ queryKey: ["user"] });
-      }
+    try {
+      // Sign out (clears cookies)
+      await supabase.auth.signOut();
 
-      if (data.message) {
-        toast.success(data.message);
-      } else {
-        toast.success("Profile updated successfully!");
-      }
+      // Refresh router to clear Client Cache
+      router.refresh();
+
+      // Redirect to login
+      router.push("/account/signin");
       
-      // Reset file input
-      setSelectedFile(null);
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-      if (fileInput) fileInput.value = "";
-    },
-    onError: (err: any) => {
-      console.error("Update mutation error:", err);
-      toast.error(err.message || "Update failed");
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: deleteUser,
-    onSuccess: () => {
-      toast.success("Account deleted successfully");
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 500);
-    },
-    onError: (err: any) => {
-      toast.error(err.message || "Delete failed");
-      console.error("Delete error:", err);
-    },
-  });
-
-  // --- Forms ---
-  const nameForm = useForm({
-    resolver: zodResolver(updateNameSchema),
-    defaultValues: { name: "" },
-  });
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    console.log("File selected:", file);
-    if (file) {
-      setSelectedFile(file);
-      const previewUrl = URL.createObjectURL(file);
-      setAvatarPreview(previewUrl);
-    }
-  };
-
-  const handleAvatarUpload = () => {
-    if (selectedFile) {
-      console.log("Uploading file:", selectedFile.name, selectedFile.size, selectedFile.type);
-      updateMutation.mutate({ avatar: selectedFile });
-    } else {
-      toast.error("Please select an image first");
+      toast.success("Signed out successfully");
+    } catch (error) {
+      console.error("Logout failed:", error);
+      toast.error("Failed to sign out. Please try again.");
+      setIsLoggingOut(false);
+      setShowLogoutModal(false);
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Loading settings...</div>
+      <div className="relative min-h-screen px-4 py-8 overflow-hidden">
+        <BackgroundEffects />
+        <div className="container mx-auto relative z-10">
+          <SettingsSkeleton />
+        </div>
       </div>
     );
   }
 
-  if (fetchError) {
+  if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <div className="text-lg text-red-600">Error loading settings</div>
-        <button 
-          onClick={() => queryClient.invalidateQueries({ queryKey: ["user"] })}
-          className="px-4 py-2 bg-blue-600 text-white rounded"
-        >
-          Retry
-        </button>
+      <div className="relative min-h-screen px-4 py-8 overflow-hidden">
+        <BackgroundEffects />
+        <div className="container mx-auto relative z-10 flex items-center justify-center min-h-[50vh]">
+          <SettingsError error={error} onRetry={() => refetch()} />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-6 space-y-10">
-      <h1 className="text-2xl font-bold">Account Settings</h1>
+    <div className="relative min-h-screen px-4 py-8 overflow-hidden">
+      <BackgroundEffects />
+      
+      {/* Background Gradient Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-50/30 via-transparent to-blue-50/20" />
 
-     
+      <div className="container mx-auto relative z-10">
+        <PageHeader
+          title="ACCOUNT SETTINGS"
+          description="Manage your profile, security preferences, and account configurations."
+          icon={<SettingsIcon className="w-4 h-4" />}
+          tagline="Your Control Center"
+        >
+          <Button
+            variant="outline"
+            className="rounded-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300 px-6 h-12 transition-all duration-300 group"
+            onClick={() => setShowLogoutModal(true)}
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Sign Out
+          </Button>
+        </PageHeader>
 
-      {/* --- 1. Avatar Section --- */}
-      <section className="flex flex-col gap-4">
-        <h2 className="text-lg font-semibold border-b pb-2">Profile Picture</h2>
-        <div className="flex items-center gap-6">
-          <div className="relative w-24 h-24 rounded-full overflow-hidden border border-gray-200 bg-gray-100 shrink-0">
-            {avatarPreview ? (
-              <Image 
-                src={avatarPreview} 
-                alt="Avatar" 
-                fill 
-                className="object-cover" 
-                unoptimized
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full text-gray-400">
-                <span className="text-xs">No Image</span>
+        {/* Stats Grid */}
+        <div className="mb-8">
+          <StatsGrid stats={stats} />
+        </div>
+
+        {/* Main Content Container */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-slate-200/50 shadow-lg mb-8">
+          
+          {/* Tab Navigation */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 border-b border-slate-100 pb-6">
+            <div className="flex flex-wrap gap-2">
+              {tabs.map((tab) => {
+                const isActive = activeTab === tab.value;
+                return (
+                  <button
+                    key={tab.value}
+                    onClick={() => setActiveTab(tab.value)}
+                    className={cn(
+                      "flex items-center gap-3 px-5 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden",
+                      isActive
+                        ? `bg-gradient-to-r ${tab.color} text-white shadow-md`
+                        : "text-slate-700 hover:bg-slate-100/80 hover:shadow-sm border border-slate-200/50"
+                    )}
+                  >
+                    <div className={cn(
+                      "p-1.5 rounded-lg transition-colors",
+                      isActive
+                        ? "bg-white/20"
+                        : "bg-slate-100 group-hover:bg-white"
+                    )}>
+                      {tab.icon}
+                    </div>
+                    <div className="text-left">
+                      <span className="block font-semibold text-sm leading-none mb-1">
+                        {tab.label}
+                      </span>
+                      {isActive && (
+                         <span className="block text-[10px] text-white/90 font-normal opacity-0 animate-in fade-in slide-in-from-left-2 duration-300 fill-mode-forwards">
+                           {tab.description}
+                         </span>
+                      )}
+                    </div>
+                    {isActive && (
+                      <ChevronRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform opacity-50" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Tab Content Areas */}
+          <div className="min-h-[400px]">
+            {activeTab === "profile" && (
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="grid gap-8 lg:grid-cols-3">
+                  {/* Left Column: Avatar */}
+                  <div className="lg:col-span-1">
+                    <div className="bg-gradient-to-br from-blue-50 to-cyan-50/50 rounded-2xl p-6 border border-blue-100/50 h-full">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center">
+                          <UserIcon className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-slate-900">Profile Picture</h3>
+                          <p className="text-sm text-slate-500">Visible to other users</p>
+                        </div>
+                      </div>
+                      <AvatarSection user={user} />
+                    </div>
+                  </div>
+
+                  {/* Right Column: Personal Info */}
+                  <div className="lg:col-span-2">
+                    <div className="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-xs h-full">
+                       <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+                        <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500">
+                          <Mail className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-slate-900">Personal Details</h3>
+                          <p className="text-sm text-slate-500">Update your basic information</p>
+                        </div>
+                      </div>
+                      <PersonalInfoSection user={user} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "security" && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="bg-gradient-to-br from-purple-50 to-pink-50/30 rounded-2xl p-6 border border-purple-100/50">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-400 flex items-center justify-center">
+                      <Lock className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-slate-900">Security Settings</h3>
+                      <p className="text-slate-500">Manage your password and authentication methods</p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid gap-6 md:grid-cols-2 mb-8">
+                     <div className="flex items-center gap-4 p-4 rounded-xl bg-white/60 border border-purple-100">
+                        <div className="p-2 bg-green-100 text-green-600 rounded-lg">
+                           <CheckCircle2 className="w-5 h-5"/>
+                        </div>
+                        <div>
+                           <p className="font-semibold text-slate-800">Email Verified</p>
+                           <p className="text-xs text-slate-500">Your account is safe</p>
+                        </div>
+                     </div>
+                     <div className="flex items-center gap-4 p-4 rounded-xl bg-white/60 border border-purple-100">
+                        <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                           <Smartphone className="w-5 h-5"/>
+                        </div>
+                        <div>
+                           <p className="font-semibold text-slate-800">2FA Enabled</p>
+                           <p className="text-xs text-slate-500">Extra layer of security</p>
+                        </div>
+                     </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl p-4 shadow-xs border border-purple-100/50">
+                     <SecuritySection />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "danger" && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                 <div className="bg-gradient-to-br from-red-50 to-orange-50/30 rounded-2xl p-6 border border-red-100/50">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-orange-400 flex items-center justify-center shadow-lg shadow-red-500/20">
+                        <AlertTriangle className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-slate-900">Danger Zone</h3>
+                        <p className="text-slate-500">Irreversible actions for your account</p>
+                      </div>
+                    </div>
+                    <div className="bg-white/80 backdrop-blur-sm rounded-xl p-1 border border-red-200/50">
+                      <DangerZoneSection />
+                    </div>
+                 </div>
               </div>
             )}
           </div>
-          
-          <div className="flex flex-col gap-2 w-full">
-            <input
-              type="file"
-              accept="image/jpeg,image/jpg,image/png,image/webp"
-              className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
-              onChange={handleFileChange}
-            />
-            {selectedFile && (
-              <p className="text-xs text-gray-600">
-                Selected: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(2)} KB)
-              </p>
-            )}
-            <button 
-              type="button"
-              onClick={handleAvatarUpload}
-              disabled={updateMutation.isPending || !selectedFile}
-              className="w-fit px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {updateMutation.isPending ? "Uploading..." : "Upload New Photo"}
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* --- 2. Personal Information --- */}
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold border-b pb-2">Personal Information</h2>
-        
-        {/* Email (Read Only) */}
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-gray-700">Email Address</label>
-          <input
-            type="text"
-            value={fetchedUser?.email || "No email found"}
-            disabled
-            className="w-full p-2 border rounded bg-gray-100 text-gray-500 cursor-not-allowed"
-          />
-          {!fetchedUser?.email && (
-            <p className="text-xs text-red-600">Email not found in database. Check your Prisma schema and data.</p>
-          )}
         </div>
 
-        {/* Name Form */}
-        <form
-          onSubmit={nameForm.handleSubmit((data) => {
-            console.log("Submitting name update:", data);
-            updateMutation.mutate({ name: data.name });
-          })}
-          className="space-y-2"
-        >
-          <label className="text-sm font-medium text-gray-700">Display Name</label>
-          <div className="flex gap-2">
-            <input
-              {...nameForm.register("name")}
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
-              placeholder="Your name"
-            />
-            <button
-              type="submit"
-              disabled={updateMutation.isPending || !nameForm.formState.isDirty}
-              className="px-4 py-2 bg-gray-900 text-white rounded hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-            >
-              {updateMutation.isPending ? "Saving..." : "Save Name"}
-            </button>
-          </div>
-          {nameForm.formState.errors.name && (
-            <p className="text-red-500 text-sm">{nameForm.formState.errors.name.message}</p>
-          )}
-        </form>
-      </section>
-
-      {/* --- 3. Security (Password) --- */}
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold border-b pb-2">Security</h2>
-        <div className="flex items-center justify-between p-4 border rounded bg-gray-50">
-          <div>
-            <p className="font-medium text-gray-900">Password</p>
-            <p className="text-sm text-gray-500">
-              Receive a link via email to reset your password.
-            </p>
-          </div>
-          <button
-            onClick={() => updateMutation.mutate({ resetPassword: true })}
-            disabled={updateMutation.isPending}
-            className="px-4 py-2 border border-gray-300 bg-white rounded hover:bg-gray-50 text-sm font-medium shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {updateMutation.isPending ? "Sending..." : "Reset Password"}
-          </button>
+        {/* Footer Info */}
+        <div className="text-center text-slate-400 text-sm pb-8">
+          <p>Expense Tracker Settings • Version 2.4.0</p>
         </div>
-      </section>
+      </div>
 
-      {/* --- 4. Danger Zone --- */}
-      <section className="pt-6">
-        <div className="border border-red-200 rounded p-4 bg-red-50 flex items-center justify-between">
-          <div>
-            <p className="font-medium text-red-900">Delete Account</p>
-            <p className="text-sm text-red-700">
-              Permanently delete your account and all data.
-            </p>
-          </div>
-          <button
-            onClick={() => {
-              if (confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
-                deleteMutation.mutate();
-              }
-            }}
-            disabled={deleteMutation.isPending}
-            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {deleteMutation.isPending ? "Deleting..." : "Delete Account"}
-          </button>
-        </div>
-      </section>
+      {/* 4. Added Logout Modal Component to DOM */}
+      <LogoutModal 
+        open={showLogoutModal} 
+        onOpenChange={setShowLogoutModal} 
+        onConfirm={handleLogout}
+        isLoading={isLoggingOut}
+      />
+
     </div>
   );
 }

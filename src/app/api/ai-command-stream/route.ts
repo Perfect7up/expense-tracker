@@ -1,14 +1,11 @@
-// app/api/ai-command-stream/route.ts
 import { NextResponse } from "next/server";
 import prisma from "@/app/core/lib/prisma";
 import { createServerSupabase } from "@/app/core/lib/supabase/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import prompts from "@/app/core/config/ai-prompts.json";
 
 export async function POST(req: Request) {
   try {
-    // -------------------------------------------------------------
-    // 1️⃣ Auth Check
-    // -------------------------------------------------------------
     const supabase = await createServerSupabase();
     const {
       data: { user },
@@ -21,9 +18,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // -------------------------------------------------------------
-    // 2️⃣ Input Validation
-    // -------------------------------------------------------------
     let body;
     try {
       body = await req.json();
@@ -43,9 +37,7 @@ export async function POST(req: Request) {
 
     console.log("📝 Processing message:", message);
 
-    // -------------------------------------------------------------
-    // 3️⃣ Get or create User in Prisma DB
-    // -------------------------------------------------------------
+    // 1. Get or create User in Prisma
     const dbUser = await prisma.user.upsert({
       where: { supabaseId: user.id },
       update: {},
@@ -55,104 +47,8 @@ export async function POST(req: Request) {
       },
     });
 
-    // -------------------------------------------------------------
-    // 3.5️⃣ Handle Download Commands
-    // -------------------------------------------------------------
-    const downloadCommands = [
-      "download expense summary",
-      "download expenses summary",
-      "download expense report",
-      "download expenses report",
-      "download income summary",
-      "download incomes summary",
-      "download income report",
-      "download incomes report",
-      "give me expense summary",
-      "give me income summary",
-      "generate expense summary",
-      "generate income summary",
-      "export expenses",
-      "export income",
-    ];
-
-    const isDownloadCommand = downloadCommands.some((cmd) =>
-      lower.includes(cmd)
-    );
-
-    if (isDownloadCommand) {
-      console.log("📁 Download command detected!");
-
-      const type = lower.includes("income") ? "income" : "expense";
-
-      // Detect period from message
-      let period = "month"; // default
-      if (lower.includes("week") || lower.includes("weekly")) {
-        period = "week";
-      } else if (
-        lower.includes("year") ||
-        lower.includes("yearly") ||
-        lower.includes("annual")
-      ) {
-        period = "year";
-      } else if (
-        lower.includes("all") ||
-        lower.includes("everything") ||
-        lower.includes("complete")
-      ) {
-        period = "all";
-      }
-
-      const downloadUrl = `/api/download-summary?type=${type}&period=${period}`;
-
-      return NextResponse.json({
-        success: true,
-        conversational: false,
-        download: true,
-        message: `📊 Here is your ${type} summary for the ${period === "all" ? "entire history" : `past ${period}`}.`,
-        fileUrl: downloadUrl,
-      });
-    }
-
-    // -------------------------------------------------------------
-    // 4️⃣ Check if message is conversational (not a transaction)
-    // -------------------------------------------------------------
+    // 2. Check if message is conversational
     if (isConversationalMessage(message)) {
-      console.log("💬 Conversational message detected");
-
-      // Handle with AI for friendly response
-      if (process.env.GEMINI_API_KEY?.trim()) {
-        try {
-          const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-          const model = genAI.getGenerativeModel({
-            model: "gemini-1.5-flash",
-            generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 150,
-            },
-          });
-
-          const conversationPrompt = `You are a friendly financial assistant. Respond naturally and helpfully to the user's message.
-
-User message: "${message}"
-
-Keep your response brief (1-2 sentences) and friendly. If they're thanking you, acknowledge it warmly. If they're asking a question, answer helpfully.`;
-
-          const result = await model.generateContent(conversationPrompt);
-          const response = await result.response;
-          const reply = response.text().trim();
-
-          return NextResponse.json({
-            success: true,
-            conversational: true,
-            message: reply,
-          });
-        } catch (error) {
-          console.error("AI conversation error:", error);
-          // Fallback to simple responses
-        }
-      }
-
-      // Fallback conversational responses
       const reply = getConversationalResponse(message);
       return NextResponse.json({
         success: true,
@@ -161,142 +57,99 @@ Keep your response brief (1-2 sentences) and friendly. If they're thanking you, 
       });
     }
 
-    // -------------------------------------------------------------
-    // 5️⃣ AI Processing with Google Gemini (for transactions)
-    // -------------------------------------------------------------
+    // 3. AI Processing
     let parsed: any;
     let usedFallback = false;
 
-    // Try AI first if API key is available
     if (process.env.GEMINI_API_KEY?.trim()) {
       try {
-        console.log("🔑 Gemini API key found, attempting AI parsing...");
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
         const model = genAI.getGenerativeModel({
           model: "gemini-1.5-flash",
-          generationConfig: {
-            temperature: 0.1,
-            maxOutputTokens: 200,
-          },
+          generationConfig: { temperature: 0.1, maxOutputTokens: 400 },
         });
 
-        const prompt = `You are a financial assistant. Extract structured data from the user's message.
-
-User message: "${message}"
-
-Return ONLY a valid JSON object with this exact structure:
-{
-  "type": "expense" or "income",
-  "title": "short descriptive title",
-  "amount": number,
-  "note": "optional additional context",
-  "category": "optional category like Food, Transport, Shopping, Entertainment, Bills, Healthcare, Education, Salary, Gift, Other"
-}
-
-Rules:
-1. Amount must be a positive number
-2. Type must be either "expense" or "income"
-3. Title should be brief (2-5 words)
-4. If category is unclear, use "Other"
-5. If the message mentions adding an expense, spending money, or buying something, it's "expense"
-6. If the message mentions receiving money, salary, sold something, or income, it's "income"
-
-Examples:
-- "I ate burger for 5$ add expense" → {"type": "expense", "title": "Burger meal", "amount": 5, "note": "Ate burger", "category": "Food"}
-- "add income of $50000" → {"type": "income", "title": "Income", "amount": 50000, "note": "Added income", "category": "Salary"}
-- "Got paid 2000 for freelance work" → {"type": "income", "title": "Freelance payment", "amount": 2000, "note": "Freelance work", "category": "Salary"}
-- "Bought groceries for $50" → {"type": "expense", "title": "Grocery shopping", "amount": 50, "note": "Groceries", "category": "Food"}`;
+        const prompt = prompts.gemini.transaction_parsing.replace(
+          "{{MESSAGE}}",
+          message
+        );
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
-        let text = response.text();
+        let text = response.text().trim();
 
-        console.log("✅ Raw AI response:", text);
+        if (text.startsWith("```json")) text = text.substring(7);
+        if (text.startsWith("```")) text = text.substring(3);
+        if (text.endsWith("```")) text = text.substring(0, text.length - 3);
 
-        // Clean up the response
-        text = text.trim();
-
-        // Remove markdown code blocks
-        if (text.startsWith("```json")) {
-          text = text.substring(7);
-        } else if (text.startsWith("```")) {
-          text = text.substring(3);
+        parsed = JSON.parse(text.trim());
+        
+        // Clean up amount if it's not a report
+        if (parsed.type !== 'report') {
+            let amount = typeof parsed.amount === "string"
+                ? parseFloat(parsed.amount.replace(/[^0-9.-]+/g, ""))
+                : Number(parsed.amount);
+            if (isNaN(amount) || amount <= 0) throw new Error("Invalid amount");
+            parsed.amount = amount;
         }
-        if (text.endsWith("```")) {
-          text = text.substring(0, text.length - 3);
-        }
-        text = text.trim();
-
-        // Extract JSON
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) {
-          throw new Error("No JSON found in AI response");
-        }
-
-        parsed = JSON.parse(jsonMatch[0]);
-        console.log("✅ Parsed AI response:", parsed);
-
-        // Validate required fields
-        if (!parsed.type || !parsed.title || parsed.amount === undefined) {
-          throw new Error("Missing required fields in AI response");
-        }
-
-        // Convert amount to number
-        const amount =
-          typeof parsed.amount === "string"
-            ? parseFloat(parsed.amount.replace(/[^0-9.-]+/g, ""))
-            : Number(parsed.amount);
-
-        if (isNaN(amount) || amount <= 0) {
-          throw new Error(`Invalid amount: ${parsed.amount}`);
-        }
-
-        parsed.amount = amount;
+        
         parsed.type = parsed.type.toLowerCase();
 
-        console.log("🎯 AI parsing successful");
-      } catch (aiError: any) {
-        console.error("❌ AI parsing failed:", aiError.message);
-        // Fall through to fallback parsing
+      } catch (aiError) {
+        console.error("❌ AI parsing failed:", aiError);
       }
-    } else {
-      console.log("⚠️ No Gemini API key found, using fallback");
     }
 
-    // -------------------------------------------------------------
-    // 6️⃣ Fallback to Regex Parsing if AI fails or not configured
-    // -------------------------------------------------------------
+    // 4. Fallback Parsing
     if (!parsed) {
       usedFallback = true;
-      console.log("🔄 Using fallback parsing...");
-
       parsed = parseTransactionFallback(message);
 
       if (!parsed) {
         return NextResponse.json(
           {
-            error:
-              "Could not process your transaction. Please try being more specific (e.g., 'Add $50 income' or 'Spent $20 on lunch')",
+            error: "Could not process request. Try: 'Spent $20 on food', or 'Download expense report'",
           },
           { status: 422 }
         );
       }
-
-      console.log("✅ Fallback parsing result:", parsed);
     }
 
-    // -------------------------------------------------------------
-    // 7️⃣ Save to DB (AI or Fallback Path)
-    // -------------------------------------------------------------
+    // =============================================================
+    // 🆕 HANDLE REPORT DOWNLOAD REQUESTS
+    // =============================================================
+    if (parsed.type === "report") {
+      const reportType = parsed.report_type || "expenses"; // default to expenses
+      const format = parsed.format || "csv"; // default to csv
+      
+      // Construct the URL for your existing GET endpoint
+      const downloadUrl = `/api/reports/download?type=${reportType}&format=${format}`;
+      
+      return NextResponse.json({
+        success: true,
+        intent: "download",
+        message: `I've generated your ${reportType} report.`,
+        downloadUrl: downloadUrl, // Frontend should check for this and trigger window.open
+        parsed: parsed
+      });
+    }
+
+    // 5. Category Handling (For Transactions)
+    let categoryId: string | null = null;
+    if (parsed.category && parsed.category !== "Other") {
+      const existingCategory = await prisma.category.findFirst({
+        where: {
+          userId: dbUser.id,
+          name: { equals: parsed.category, mode: "insensitive" },
+        },
+      });
+      if (existingCategory) categoryId = existingCategory.id;
+    }
+
+    // 6. Save Transaction to DB
     let savedRecord;
     const amount = parsed.amount;
-
-    // Prepare note
     let finalNote = parsed.note || parsed.title;
-    if (parsed.category && parsed.category !== "Other") {
-      finalNote += ` [${parsed.category}]`;
-    }
 
     if (parsed.type === "expense") {
       savedRecord = await prisma.expense.create({
@@ -306,7 +159,7 @@ Examples:
           note: finalNote,
           occurredAt: new Date(),
           currency: "USD",
-          categoryId: null,
+          categoryId: categoryId,
         },
       });
     } else if (parsed.type === "income") {
@@ -314,18 +167,97 @@ Examples:
         data: {
           amount: amount,
           userId: dbUser.id,
-          source: parsed.category || "Manual Entry",
+          source: parsed.title || "Manual Entry",
           note: finalNote,
           receivedAt: new Date(),
           currency: "USD",
-          categoryId: null,
+          categoryId: categoryId,
         },
       });
-    } else {
-      return NextResponse.json(
-        { error: "Could not determine if expense or income" },
-        { status: 422 }
-      );
+    } else if (parsed.type === "subscription") {
+      const cycle = parsed.cycle || "MONTHLY";
+      savedRecord = await prisma.subscription.create({
+        data: {
+          name: parsed.title,
+          amount: amount,
+          userId: dbUser.id,
+          currency: "USD",
+          cycle: cycle,
+          startDate: new Date(),
+          nextBilling: new Date(),
+          isActive: true,
+          autoExpense: true,
+          note: finalNote,
+          categoryId: categoryId,
+        },
+      });
+      await prisma.expense.create({
+        data: {
+          userId: dbUser.id,
+          amount: amount,
+          currency: "USD",
+          note: `Initial expense for subscription: ${parsed.title}`,
+          categoryId: categoryId,
+          subscriptionId: savedRecord.id,
+          occurredAt: new Date(),
+        },
+      });
+    } else if (parsed.type === "investment") {
+      const quantity = parsed.quantity || 1;
+      const pricePerUnit = amount;
+      const symbol = parsed.symbol ? parsed.symbol.toUpperCase() : null;
+      const action = parsed.action || "buy";
+
+      const existingAsset = await prisma.investment.findFirst({
+        where: {
+          userId: dbUser.id,
+          OR: [
+            { name: { equals: parsed.title, mode: "insensitive" } },
+            ...(symbol ? [{ symbol: symbol }] : []),
+          ],
+        },
+      });
+
+      if (existingAsset) {
+       const currentQty = existingAsset.quantity.toNumber();
+       const currentAvg = existingAsset.averageBuyPrice.toNumber();
+       let newQuantity = currentQty;
+       let newAvgPrice = currentAvg;
+
+       if (action === "buy") {
+         const totalCostOld = currentQty * currentAvg;
+         const totalCostNew = quantity * pricePerUnit;
+         newQuantity = currentQty + quantity;
+         if (newQuantity > 0) newAvgPrice = (totalCostOld + totalCostNew) / newQuantity;
+       } else if (action === "sell") {
+         newQuantity = Math.max(0, currentQty - quantity);
+       }
+
+        savedRecord = await prisma.investment.update({
+          where: { id: existingAsset.id },
+          data: {
+            quantity: newQuantity,
+            averageBuyPrice: newAvgPrice,
+            currentPrice: pricePerUnit,
+            ...(categoryId ? { categoryId } : {}),
+          },
+        });
+      } else {
+        if (action === "sell") {
+          return NextResponse.json({ error: "Cannot sell an asset you don't own yet." }, { status: 400 });
+        }
+        savedRecord = await prisma.investment.create({
+          data: {
+            userId: dbUser.id,
+            name: parsed.title,
+            symbol: symbol,
+            quantity: quantity,
+            averageBuyPrice: pricePerUnit,
+            currentPrice: pricePerUnit,
+            categoryId: categoryId,
+          },
+        });
+      }
     }
 
     return NextResponse.json({
@@ -333,16 +265,11 @@ Examples:
       saved: savedRecord,
       parsed: parsed,
       usedFallback: usedFallback,
-      aiAvailable: !!process.env.GEMINI_API_KEY?.trim(),
     });
   } catch (err: any) {
     console.error("API ROUTE ERROR:", err);
     return NextResponse.json(
-      {
-        error: "Internal server error",
-        details:
-          process.env.NODE_ENV === "development" ? err.message : undefined,
-      },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
@@ -353,79 +280,31 @@ Examples:
 // -------------------------------------------------------------
 function isConversationalMessage(message: string): boolean {
   const lowerMsg = message.toLowerCase().trim();
-
-  // Check if message has amount indicators (likely a transaction)
-  const hasAmount = /\$?\s*\d{1,3}(?:,\d{3})*(?:\.\d{2})?|\d+(?:\.\d{2})?/.test(
-    lowerMsg
-  );
-
-  // Transaction keywords
-  const transactionKeywords = [
-    "add expense",
-    "add income",
-    "spent",
-    "spend",
-    "bought",
-    "paid for",
-    "received",
-    "earned",
-    "salary",
-    "purchase",
-    "buy",
-    "expense of",
-    "income of",
-  ];
-
-  const hasTransactionKeyword = transactionKeywords.some((k) =>
-    lowerMsg.includes(k)
-  );
-
-  // If it has an amount AND transaction keyword, it's likely a transaction
-  if (hasAmount && hasTransactionKeyword) {
+  
+  // 🆕 If user asks to download, it is NOT conversational, it is functional
+  if (lowerMsg.includes("download") || lowerMsg.includes("export") || lowerMsg.includes("report")) {
     return false;
   }
 
-  // Conversational patterns
-  const conversationalPatterns = [
-    /^(thanks?|thank you|ty|thx)/i,
-    /^(hello|hi|hey|good morning|good evening)/i,
-    /^(how are you|what's up|whats up)/i,
-    /^(ok|okay|cool|nice|great|awesome)/i,
-    /^(bye|goodbye|see you|later)/i,
-    /^(help|what can you do)/i,
-    /^(yes|no|yep|nope|yeah)/i,
+  const hasAmount = /\$?\s*\d+/.test(lowerMsg);
+  const transactionKeywords = [
+    "add expense", "add income", "spent", "paid", "received", "earned",
+    "subscription", "subscribe", "buy", "sell", "invest", "trade", "stock",
+    "shares", "purchase"
   ];
 
-  return conversationalPatterns.some((pattern) => pattern.test(lowerMsg));
+  if (hasAmount && transactionKeywords.some((k) => lowerMsg.includes(k))) {
+    return false; 
+  }
+
+  const conversationalPatterns = [
+    /^(hi|hello|hey|thanks|help|bye)/i
+  ];
+  return conversationalPatterns.some((p) => p.test(lowerMsg));
 }
 
-// -------------------------------------------------------------
-// Helper: Generate Conversational Response
-// -------------------------------------------------------------
 function getConversationalResponse(message: string): string {
-  const lowerMsg = message.toLowerCase().trim();
-
-  if (/^(thanks?|thank you|ty|thx)/i.test(lowerMsg)) {
-    return "You're welcome! Happy to help with your finances. 😊";
-  }
-
-  if (/^(hello|hi|hey)/i.test(lowerMsg)) {
-    return "Hi there! I can help you track expenses and income. Just tell me what you spent or earned!";
-  }
-
-  if (/^(how are you|what's up|whats up)/i.test(lowerMsg)) {
-    return "I'm doing great, thanks for asking! Ready to help you manage your finances. 💰";
-  }
-
-  if (/^(bye|goodbye|see you|later)/i.test(lowerMsg)) {
-    return "Goodbye! Come back anytime you need to track your finances. 👋";
-  }
-
-  if (/^(help|what can you do)/i.test(lowerMsg)) {
-    return "I can help you track expenses and income! Try saying things like 'Spent $20 on lunch' or 'Add $500 income'.";
-  }
-
-  return "I'm here to help! You can tell me about expenses or income you'd like to track.";
+  return "I can help track expenses, income, subscriptions, and investments! Or try 'Download expense report'.";
 }
 
 // -------------------------------------------------------------
@@ -433,156 +312,65 @@ function getConversationalResponse(message: string): string {
 // -------------------------------------------------------------
 function parseTransactionFallback(message: string) {
   try {
-    const lowerMsg = message.toLowerCase().trim();
+    const lower = message.toLowerCase().trim();
 
-    // 1. Extract Amount - more robust regex
-    const amountRegex =
-      /(\$?\s*)(\d{1,3}(?:,\d{3})*(?:\.\d{2})?|\d+(?:\.\d{2})?)/;
-    const amountMatch = lowerMsg.match(amountRegex);
+    // 🆕 1. Detect Reports
+    if (lower.includes("download") || lower.includes("export") || lower.includes("report")) {
+        const type = "report";
+        let reportType = "expenses";
+        if (lower.includes("income")) reportType = "incomes";
+        
+        let format = "csv";
+        if (lower.includes("json")) format = "json";
 
-    if (!amountMatch) return null;
+        return { type, report_type: reportType, format, amount: 0 };
+    }
 
-    const amountStr = amountMatch[2].replace(/,/g, "");
-    const amount = parseFloat(amountStr);
+    // 2. Detect Transactions
+    let type: "income" | "expense" | "subscription" | "investment" = "expense";
+    let action = "buy";
+    let category = "Other";
+    let cycle = "MONTHLY";
 
-    if (isNaN(amount) || amount <= 0) return null;
-
-    // 2. Determine Type - prioritize income keywords
-    const incomeKeywords = [
-      "income",
-      "salary",
-      "paid",
-      "received",
-      "deposit",
-      "earned",
-      "sold",
-      "got paid",
-      "add income",
-      "record income",
-      "income of",
-      "salary of",
-    ];
-
-    const expenseKeywords = [
-      "spent",
-      "spend",
-      "buy",
-      "bought",
-      "purchase",
-      "expense",
-      "cost",
-      "pay",
-      "paid for",
-    ];
-
-    let type: "income" | "expense" = "expense"; // default
-
-    // Check for income keywords first
-    if (incomeKeywords.some((k) => lowerMsg.includes(k))) {
+    if (lower.includes("buy") || lower.includes("invest") || lower.includes("stock")) {
+      type = "investment";
+      action = "buy";
+      category = "Stocks";
+    } else if (lower.includes("sell") || lower.includes("trade")) {
+      type = "investment";
+      action = "sell";
+      category = "Stocks";
+    } else if (lower.includes("subscription")) {
+      type = "subscription";
+      category = "Subscription";
+    } else if (lower.includes("income") || lower.includes("salary")) {
       type = "income";
-    }
-    // If no income keywords found, check for expense keywords
-    else if (expenseKeywords.some((k) => lowerMsg.includes(k))) {
-      type = "expense";
-    }
-    // If message starts with "add" and has amount, it's likely income
-    else if (lowerMsg.startsWith("add") || lowerMsg.startsWith("record")) {
-      type = "income";
+      category = "Salary";
     }
 
-    // 3. Extract Description
+    // Extract Amount (Skip for report logic above)
+    const amountMatch = lower.match(/(\$?\s*)([\d,]+(?:\.\d+)?)/);
+    if (!amountMatch) return null; // Transaction must have amount
+    
+    const amount = parseFloat(amountMatch[2].replace(/,/g, ""));
+
+    // Extract Description
     let description = message
-      .replace(amountMatch[0], "") // Remove amount
-      .replace(
-        /(add|record|log|track|expense|income|spent|spend|paid|received|for|on|of)/gi,
-        ""
-      )
+      .replace(amountMatch[0], "")
+      .replace(/(add|expense|income|subscription|spent|paid|received|for|on)/gi, "")
       .trim();
-
-    if (!description || description.length < 2) {
-      description = type === "income" ? "Income" : "Purchase";
-    }
-
-    // 4. Determine Category
-    let category = type === "income" ? "Salary" : "Other";
-
-    if (type === "expense") {
-      const categories = {
-        Food: [
-          "burger",
-          "food",
-          "eat",
-          "restaurant",
-          "grocery",
-          "meal",
-          "lunch",
-          "dinner",
-          "coffee",
-          "cafe",
-        ],
-        Transport: [
-          "gas",
-          "fuel",
-          "uber",
-          "taxi",
-          "transport",
-          "bus",
-          "flight",
-          "train",
-          "metro",
-          "parking",
-        ],
-        Shopping: [
-          "buy",
-          "purchase",
-          "shop",
-          "shopping",
-          "amazon",
-          "store",
-          "mall",
-          "online",
-        ],
-        Bills: [
-          "bill",
-          "rent",
-          "electricity",
-          "water",
-          "internet",
-          "phone",
-          "subscription",
-          "utility",
-        ],
-        Entertainment: [
-          "movie",
-          "concert",
-          "game",
-          "netflix",
-          "spotify",
-          "entertainment",
-          "fun",
-        ],
-      };
-
-      for (const [cat, keywords] of Object.entries(categories)) {
-        if (keywords.some((keyword) => lowerMsg.includes(keyword))) {
-          category = cat;
-          break;
-        }
-      }
-    }
+      
+    if (!description) description = type.charAt(0).toUpperCase() + type.slice(1);
 
     return {
-      type: type,
-      title:
-        description.length > 50
-          ? description.substring(0, 50) + "..."
-          : description,
+      type,
+      title: description.substring(0, 50),
       amount: amount,
-      note: message,
-      category: category,
+      category,
+      cycle: type === "subscription" ? cycle : undefined,
+      action: type === "investment" ? action : undefined
     };
   } catch (error) {
-    console.error("Fallback parsing error:", error);
     return null;
   }
 }

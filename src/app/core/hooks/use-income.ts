@@ -12,7 +12,15 @@ export function useIncomes() {
       if (!res.ok) {
         throw new Error("Failed to load incomes");
       }
-      return res.json();
+      const data = await res.json();
+      
+      // Transform data to include investment information
+      return data.map((income: any) => ({
+        ...income,
+        // Ensure investment data is properly included
+        investmentName: income.investmentName || null,
+        investmentSymbol: income.investmentSymbol || null,
+      }));
     },
   });
 
@@ -87,11 +95,11 @@ export function useIncomes() {
     isCreating: createIncome.isPending,
 
     // Update
-    updateIncome: updateIncome.mutateAsync, // This returns the FUNCTION
-    isUpdating: updateIncome.isPending, // This returns the BOOLEAN
+    updateIncome: updateIncome.mutateAsync,
+    isUpdating: updateIncome.isPending,
 
     // Delete
-    deleteIncome: deleteIncome.mutateAsync, // This returns the FUNCTION
-    isDeleting: deleteIncome.isPending, // This returns the BOOLEAN
+    deleteIncome: deleteIncome.mutateAsync,
+    isDeleting: deleteIncome.isPending,
   };
 }

@@ -5,11 +5,12 @@ import { Expense, CreateExpenseInput } from "../types/expenses";
 
 export function useExpenses() {
   const queryClient = useQueryClient();
-
   const expensesQuery = useQuery<Expense[]>({
     queryKey: ["expenses"],
     queryFn: async () => {
+      console.log("🔄 Fetching expenses...");
       const res = await fetch("/api/expenses");
+      
       if (!res.ok) {
         let errorMessage = "Failed to load expenses";
         try {
@@ -20,10 +21,39 @@ export function useExpenses() {
         }
         throw new Error(errorMessage);
       }
-      return res.json();
+      
+      const data = await res.json();
+      
+      // Enhanced debugging
+      console.group("📊 EXPENSES API RESPONSE");
+      console.log("Total expenses:", data.length);
+      
+      // Check subscription data
+      const expensesWithSubscriptions = data.filter((e: any) => e.subscriptionId || e.subscription);
+      console.log("Expenses with subscriptions:", expensesWithSubscriptions.length);
+      
+      if (expensesWithSubscriptions.length > 0) {
+        console.log("Sample expense with subscription:", expensesWithSubscriptions[0]);
+      } else {
+        console.log("No expenses have subscriptionId in the database!");
+      }
+      
+      data.forEach((expense: any, index: number) => {
+        if (expense.subscriptionId || expense.subscription) {
+          console.log(`💰 Expense ${index + 1} has subscription:`, {
+            id: expense.id,
+            subscriptionId: expense.subscriptionId,
+            subscriptionName: expense.subscriptionName,
+            subscriptionObject: expense.subscription,
+            amount: expense.amount
+          });
+        }
+      });
+      console.groupEnd();
+      
+      return data;
     },
   });
-
   // Inside useExpenses hook...
 
   const createExpenseMutation = useMutation<Expense, Error, CreateExpenseInput>(

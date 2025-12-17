@@ -24,10 +24,12 @@ import { Checkbox } from "@/app/core/components/ui/checkbox";
 import { Eye, EyeOff, Loader2, Mail, Lock, CheckCircle } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
+import { FcGoogle } from "react-icons/fc";
 
 export default function SignupForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false); // New state for Google
   const router = useRouter();
   const supabase = createClient();
 
@@ -40,6 +42,7 @@ export default function SignupForm() {
     },
   });
 
+  // --- Email/Password Mutation ---
   const mutation = useMutation({
     mutationFn: async (data: SignupSchema) => {
       const { data: authData, error } = await supabase.auth.signUp({
@@ -54,7 +57,9 @@ export default function SignupForm() {
   
       if (error) throw new Error(error.message);
   
-      // Insert into Prisma
+      // Insert into Prisma via API
+      // Note: If you are using Supabase triggers, this fetch might be redundant, 
+      // but keeping it as per your provided logic.
       await fetch("/api/user/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -67,8 +72,14 @@ export default function SignupForm() {
   
       return authData;
     },
-    onSuccess: () => {
-      router.push("/account/signin");
+    onSuccess: (data) => {
+      // Check if session is null (implies email confirmation is on)
+      if (data.session === null) {
+        setSignupSuccess(true);
+      } else {
+        router.refresh();
+        router.push("/dashboard"); 
+      }
     },
     onError: (error: Error) => {
       console.error("Signup error:", error.message);
@@ -79,14 +90,35 @@ export default function SignupForm() {
     mutation.mutate(data);
   };
 
+  // --- Google Sign In Logic ---
+  const signInWithGoogle = async () => {
+    setIsGoogleLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          // This route (from previous prompt) handles the Prisma creation for OAuth
+          redirectTo: `${location.origin}/auth/callback`,
+        },
+      });
+      if (error) throw error;
+    } catch (error) {
+      console.error("Google auth error:", error);
+      setIsGoogleLoading(false);
+    }
+  };
+
+  const isLoading = mutation.isPending || isGoogleLoading;
+
+  // --- Success View ---
   if (signupSuccess) {
     return (
-      <div className="space-y-6 text-center py-8">
-        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center mx-auto mb-4">
+      <div className="space-y-6 text-center py-8 animate-in fade-in zoom-in duration-300">
+        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center mx-auto mb-4 shadow-sm">
           <CheckCircle className="w-8 h-8 text-green-600" />
         </div>
         <h3 className="text-xl font-bold text-slate-900">Check Your Email!</h3>
-        <p className="text-slate-600">
+        <p className="text-slate-600 max-w-xs mx-auto">
           We've sent a confirmation link to your email address. Please click the
           link to verify your account and get started.
         </p>
@@ -108,7 +140,6 @@ export default function SignupForm() {
     <>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          {/* Email Field */}
           {/* Name Field */}
           <FormField
             control={form.control}
@@ -121,7 +152,7 @@ export default function SignupForm() {
                     {...field}
                     placeholder="John Doe"
                     className="h-11 bg-white border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
-                    disabled={mutation.isPending}
+                    disabled={isLoading}
                   />
                 </FormControl>
                 <FormMessage />
@@ -129,6 +160,7 @@ export default function SignupForm() {
             )}
           />
 
+          {/* Email Field */}
           <FormField
             control={form.control}
             name="email"
@@ -143,7 +175,7 @@ export default function SignupForm() {
                       placeholder="you@example.com"
                       type="email"
                       className="pl-10 h-11 bg-white border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
-                      disabled={mutation.isPending}
+                      disabled={isLoading}
                     />
                   </div>
                 </FormControl>
@@ -167,13 +199,13 @@ export default function SignupForm() {
                       placeholder="••••••••"
                       type={showPassword ? "text" : "password"}
                       className="pl-10 pr-10 h-11 bg-white border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
-                      disabled={mutation.isPending}
+                      disabled={isLoading}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                      disabled={mutation.isPending}
+                      disabled={isLoading}
                     >
                       {showPassword ? (
                         <EyeOff className="w-5 h-5" />
@@ -193,7 +225,7 @@ export default function SignupForm() {
 
           {/* Terms Checkbox */}
           <div className="flex items-start space-x-3">
-            <Checkbox id="terms" disabled={mutation.isPending} />
+            <Checkbox id="terms" disabled={isLoading} />
             <label
               htmlFor="terms"
               className="text-sm text-slate-700 leading-relaxed"
@@ -227,7 +259,7 @@ export default function SignupForm() {
           {/* Submit Button */}
           <Button
             type="submit"
-            disabled={mutation.isPending}
+            disabled={isLoading}
             className="w-full h-11 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl transition-all duration-300"
           >
             {mutation.isPending ? (
@@ -241,6 +273,32 @@ export default function SignupForm() {
           </Button>
         </form>
       </Form>
+
+      {/* Divider */}
+      <div className="relative my-6">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-slate-200" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-white px-2 text-slate-500">Or continue with</span>
+        </div>
+      </div>
+
+      {/* Google Button */}
+      <Button
+        type="button"
+        variant="outline"
+        onClick={signInWithGoogle}
+        disabled={isLoading}
+        className="w-full h-11 bg-white border-slate-200 hover:bg-slate-50 text-slate-700 font-medium"
+      >
+        {isGoogleLoading ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : (
+          <FcGoogle className="mr-2 h-5 w-5" />
+        )}
+        Google
+      </Button>
     </>
   );
 }

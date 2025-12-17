@@ -56,6 +56,7 @@ export async function PATCH(request: Request) {
     const formData = await request.formData();
     const name = formData.get("name") as string | null;
     const avatarFile = formData.get("avatar") as File | null;
+    const removeAvatar = formData.get("removeAvatar") === "true";
     const requestPasswordReset = formData.get("resetPassword") === "true";
 
     console.log("Form data received:", { 
@@ -64,6 +65,7 @@ export async function PATCH(request: Request) {
       avatarName: avatarFile?.name,
       avatarSize: avatarFile?.size,
       avatarType: avatarFile?.type,
+      removeAvatar,
       requestPasswordReset 
     });
 
@@ -79,7 +81,7 @@ export async function PATCH(request: Request) {
         return NextResponse.json({ error: error.message }, { status: 400 });
       }
       // If only password reset was requested, return early
-      if (!name && !avatarFile) {
+      if (!name && !avatarFile && !removeAvatar) {
         return NextResponse.json({ success: true, message: "Password reset email sent." });
       }
     }
@@ -97,8 +99,38 @@ export async function PATCH(request: Request) {
       console.log("Name will be updated to:", name);
     }
 
+    // Handle avatar removal
+    if (removeAvatar) {
+      console.log("Removing avatar...");
+      
+      // Get current user to find existing avatar
+      const currentUser = await prisma.user.findUnique({
+        where: { supabaseId: authUser.id },
+        select: { avatarUrl: true },
+      });
+
+      // Delete old avatar from storage if it exists
+      if (currentUser?.avatarUrl) {
+        try {
+          // Extract file path from URL
+          const url = new URL(currentUser.avatarUrl);
+          const pathParts = url.pathname.split('/avatars/');
+          if (pathParts.length > 1) {
+            const filePath = pathParts[1];
+            console.log("Deleting old avatar:", filePath);
+            await supabase.storage.from("avatars").remove([filePath]);
+          }
+        } catch (err) {
+          console.warn("Could not delete old avatar from storage:", err);
+          // Continue anyway - we'll still remove the URL from database
+        }
+      }
+
+      dataToUpdate.avatarUrl = null;
+      console.log("Avatar will be removed");
+    }
     // Handle avatar upload
-    if (avatarFile && avatarFile.size > 0) {
+    else if (avatarFile && avatarFile.size > 0) {
       console.log("Processing avatar file...");
       const fileError = validateImage(avatarFile);
       if (fileError) {
@@ -107,6 +139,27 @@ export async function PATCH(request: Request) {
       }
 
       try {
+        // Get current user to find existing avatar
+        const currentUser = await prisma.user.findUnique({
+          where: { supabaseId: authUser.id },
+          select: { avatarUrl: true },
+        });
+
+        // Delete old avatar from storage if it exists
+        if (currentUser?.avatarUrl) {
+          try {
+            const url = new URL(currentUser.avatarUrl);
+            const pathParts = url.pathname.split('/avatars/');
+            if (pathParts.length > 1) {
+              const filePath = pathParts[1];
+              console.log("Deleting old avatar:", filePath);
+              await supabase.storage.from("avatars").remove([filePath]);
+            }
+          } catch (err) {
+            console.warn("Could not delete old avatar from storage:", err);
+          }
+        }
+
         const fileName = `${authUser.id}/${Date.now()}-${avatarFile.name}`;
         console.log("Uploading to:", fileName);
         

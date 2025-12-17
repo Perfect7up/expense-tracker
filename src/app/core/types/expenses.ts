@@ -8,7 +8,43 @@ export interface Expense {
   userId: string;
   createdAt: string | Date;
   updatedAt: string | Date;
+  subscriptionId?: string | null;
+  subscription?: {
+    id: string;
+    name: string;
+    amount: number | null;
+    currency: string;
+    cycle: string; // "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY"
+    nextBilling: string | Date;
+    isActive: boolean;
+    startDate: string | Date;
+    endDate?: string | Date | null;
+    note?: string | null;
+    autoExpense: boolean;
+  } | null;
   categoryName?: string | null;
+  subscriptionName?: string | null;
+}
+
+// Your subscription type from the hook might need updating:
+export interface Subscription {
+  id: string;
+  name: string;
+  amount: number;
+  currency: string;
+  cycle: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY"; // Make sure this matches your Prisma enum
+  nextBilling: string | Date;
+  isActive: boolean;
+  startDate: string | Date;
+  endDate?: string | Date | null;
+  note?: string | null;
+  autoExpense: boolean;
+  category?: string; // Note: This is string in your hook, but should be categoryId in DB
+  // Add missing fields from your hook
+  categoryId?: string | null;
+  userId?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface CreateExpenseInput {

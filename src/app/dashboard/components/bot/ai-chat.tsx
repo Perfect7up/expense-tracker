@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useEffect, useCallback, useMemo } from "react";
+import React, { useRef, useEffect, useCallback, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/app/core/components/ui/input";
 import { Button } from "@/app/core/components/ui/button";
@@ -11,15 +11,31 @@ import {
   X,
   CheckCircle,
   RefreshCw,
+  HelpCircle,
+  ArrowLeft,
+  ChevronDown,
 } from "lucide-react";
 import { useChatStore } from "../../store/chat-store";
 import { generateMessageId } from "../../utils/utils";
 import { ChatMessage } from "./chat-message";
+import { CommandMenu } from "./command-menu";
 import { KpiData, Message } from "../../types/types";
 
 const AiChatBase: React.FC = () => {
   const queryClient = useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [showHelp, setShowHelp] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const {
     open,
@@ -38,16 +54,21 @@ const AiChatBase: React.FC = () => {
   } = useChatStore();
 
   useEffect(() => {
-    if (open) messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, open]);
+    if (open && !isMinimized) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, open, isMinimized, showHelp]);
 
-  const handleSend = useCallback(async () => {
-    if (!input.trim() || loading) return;
+  const handleSend = useCallback(async (textOverride?: string) => {
+    const textToSend = textOverride || input;
+    if (!textToSend.trim() || loading) return;
+
+    if (textOverride) setShowHelp(false);
 
     const userMessage: Message = {
       id: generateMessageId(messageCounter),
       type: "user",
-      text: input,
+      text: textToSend,
       timestamp: new Date(),
     };
 
@@ -60,7 +81,7 @@ const AiChatBase: React.FC = () => {
       const res = await fetch("/api/ai-command-stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: input }),
+        body: JSON.stringify({ message: textToSend }),
       });
       const data = await res.json();
 
@@ -69,13 +90,18 @@ const AiChatBase: React.FC = () => {
         type: "ai",
         text: data.message || "Response received",
         timestamp: new Date(),
-        downloadUrl: data.fileUrl,
+        downloadUrl: data.downloadUrl,
       };
 
       addMessage(aiMessage);
       incrementCounter();
       setSuccess(true);
       setTimeout(() => setSuccess(false), 2000);
+      
+      if(!data.downloadUrl) {
+        handleRefreshData();
+      }
+      
     } catch (err) {
       addMessage({
         id: generateMessageId(messageCounter + 1),
@@ -110,24 +136,21 @@ const AiChatBase: React.FC = () => {
 
   const handleRefreshData = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ["kpi"] });
-    await queryClient.invalidateQueries({ queryKey: ["expenses"] });
-    await queryClient.invalidateQueries({ queryKey: ["incomes"] });
-
-    addMessage({
-      id: generateMessageId(messageCounter),
-      type: "ai",
-      text: "Dashboard data refreshed successfully!",
-      timestamp: new Date(),
-    });
-    incrementCounter();
-  }, [queryClient, messageCounter, addMessage, incrementCounter]);
+    await queryClient.invalidateQueries({ queryKey: ["reports"] });
+  }, [queryClient]);
 
   const currentKpi = queryClient.getQueryData<KpiData>(["kpi"]);
   const balance = useMemo(() => currentKpi?.balance || 0, [currentKpi]);
 
+  const handleCommandSelect = (cmd: string) => {
+    setInput(cmd);
+    // Uncomment to auto-send
+    // handleSend(cmd);
+  };
+
   if (!open) {
     return (
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className={`fixed z-50 ${isMobile ? 'bottom-20 right-4' : 'bottom-6 right-6'}`}>
         <button
           onClick={() => setOpen(true)}
           className={`bg-linear-to-r from-blue-600 to-purple-600 text-white p-4 rounded-full shadow-lg hover:scale-105 transition-transform ${
@@ -146,9 +169,47 @@ const AiChatBase: React.FC = () => {
     );
   }
 
+  if (isMinimized) {
+    return (
+      <div className={`fixed z-50 ${isMobile ? 'bottom-20 right-4' : 'bottom-6 right-6'}`}>
+        <div className="bg-linear-to-r from-blue-600 to-purple-600 text-white rounded-full shadow-xl overflow-hidden">
+          <div className="flex items-center">
+            <button
+              onClick={() => setIsMinimized(false)}
+              className="px-4 py-3 hover:bg-white/10 transition-colors"
+            >
+              <MessageSquare className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setOpen(false)}
+              className="px-4 py-3 hover:bg-white/10 transition-colors border-l border-white/20"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="fixed bottom-6 right-6 z-50">
-      <div className="w-96 h-[600px] bg-white dark:bg-gray-900 shadow-2xl rounded-2xl flex flex-col overflow-hidden border border-gray-200 dark:border-gray-800">
+    <div className={`fixed z-50 ${isMobile ? 'inset-0 md:bottom-6 md:right-6 md:inset-auto' : 'bottom-6 right-6'}`}>
+      {/* Mobile Overlay */}
+      {isMobile && (
+        <div 
+          className="fixed inset-0 bg-black/50 md:hidden"
+          onClick={() => setIsMinimized(true)}
+        />
+      )}
+
+      {/* Chat Window */}
+      <div className={`${
+        isMobile 
+          ? 'fixed inset-4 md:relative md:w-96 md:h-[600px]' 
+          : 'w-96 h-[600px]'
+      } bg-white dark:bg-gray-900 shadow-2xl rounded-2xl flex flex-col overflow-hidden border border-gray-200 dark:border-gray-800 md:max-h-[calc(100vh-3rem)]`}>
+        
+        {/* HEADER */}
         <div className="bg-linear-to-r from-blue-600 to-purple-600 text-white p-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
@@ -167,45 +228,95 @@ const AiChatBase: React.FC = () => {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            {/* Minimize Button */}
+            {isMobile && (
+              <button
+                onClick={() => setIsMinimized(true)}
+                title="Minimize"
+                className="p-1.5 hover:bg-white/20 rounded transition-colors"
+              >
+                <ChevronDown className="w-4 h-4" />
+              </button>
+            )}
+
+            {/* Sync Button */}
             <button
               onClick={handleRefreshData}
               disabled={loading}
-              className="text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded flex items-center gap-1 disabled:opacity-50 transition-colors"
+              title="Sync Data"
+              className="p-1.5 hover:bg-white/20 rounded transition-colors"
             >
-              <RefreshCw
-                className={`w-3 h-3 ${loading ? "animate-spin" : ""}`}
-              />
-              Sync
+              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             </button>
+
+            {/* Clear Button */}
             <button
               onClick={clearMessages}
-              className="text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded transition-colors"
+              title="Clear Chat"
+              className="p-1.5 hover:bg-white/20 rounded transition-colors"
             >
-              Clear
+              <span className="text-xs font-bold">CLR</span>
             </button>
+
+            {/* Help Button */}
+            <button
+              onClick={() => setShowHelp(!showHelp)}
+              title="Help / Commands"
+              className={`p-1.5 hover:bg-white/20 rounded transition-colors ${showHelp ? "bg-white/30" : ""}`}
+            >
+              <HelpCircle className="w-4 h-4" />
+            </button>
+
+            {/* Close Button */}
             <button
               onClick={() => setOpen(false)}
-              className="p-1 hover:bg-white/20 rounded-full transition-colors"
+              className="p-1.5 hover:bg-white/20 rounded-full transition-colors ml-1"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
+        {/* CHAT AREA */}
         <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-gray-50 dark:bg-gray-950">
-          {messages.map((m) => (
-            <ChatMessage key={m.id} m={m} />
-          ))}
-          {loading && (
-            <div className="flex items-center gap-2 text-gray-500">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span className="text-sm">Processing...</span>
+          {(showHelp || messages.length === 0) ? (
+            <div className="h-full flex flex-col">
+              {messages.length > 0 && (
+                <button 
+                  onClick={() => setShowHelp(false)} 
+                  className="mb-4 text-sm flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Back to chat
+                </button>
+              )}
+              <div className="mb-4">
+                <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Quick Commands
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Select a command or type your own question
+                </p>
+              </div>
+              <CommandMenu onSelect={handleCommandSelect} />
             </div>
+          ) : (
+            <>
+              {messages.map((m) => (
+                <ChatMessage key={m.id} m={m} />
+              ))}
+              {loading && (
+                <div className="flex items-center gap-2 text-gray-500 text-sm pl-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Thinking...</span>
+                </div>
+              )}
+            </>
           )}
           <div ref={messagesEndRef} />
         </div>
 
+        {/* INPUT AREA */}
         <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
           <div className="flex gap-2">
             <div className="flex-1 relative">
@@ -213,7 +324,7 @@ const AiChatBase: React.FC = () => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyPress}
-                placeholder="Chat..."
+                placeholder={showHelp ? "Select a command or type..." : "Type 'help' for commands..."}
                 className="pr-10"
                 disabled={loading}
               />
@@ -227,7 +338,7 @@ const AiChatBase: React.FC = () => {
               )}
             </div>
             <Button
-              onClick={handleSend}
+              onClick={() => handleSend()}
               disabled={loading || !input.trim()}
               className={`bg-linear-to-r from-blue-600 to-purple-600 ${
                 success ? "bg-green-600" : ""
@@ -251,7 +362,7 @@ const AiChatBase: React.FC = () => {
                 ${balance.toFixed(2)}
               </span>
             </span>
-            <span className="text-blue-600">Updates instantly ✓</span>
+            <span className="text-blue-600">AI Powered</span>
           </div>
         </div>
       </div>

@@ -8,18 +8,18 @@ export async function GET(request: Request) {
   const code = url.searchParams.get("code");
 
   if (!code) {
-    return NextResponse.redirect(new URL("/auth/signin", url));
+    return NextResponse.redirect(new URL("/account/signin", url));
   }
 
   // Initialize Supabase server client
   const supabase = await createServerSupabase();
 
-  // Exchange magic link code for session
+  // Exchange magic link/oauth code for session
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error || !data.user) {
     console.error("Auth error:", error);
-    return NextResponse.redirect(new URL("/auth/signin", url));
+    return NextResponse.redirect(new URL("/account/signin", url));
   }
 
   const user = data.user;
@@ -45,9 +45,9 @@ export async function GET(request: Request) {
     } as Prisma.UserUncheckedCreateInput,
   });
 
-  // Optional: sign the user out so they land on /auth/signin without auto-redirect to dashboard
-  await supabase.auth.signOut();
+  // 1. REMOVED: await supabase.auth.signOut(); 
+  // We want the session to stay active!
 
-  // Redirect to signin page
-  return NextResponse.redirect(new URL("/account/signin", url));
+  // 2. CHANGED: Redirect to dashboard instead of signin
+  return NextResponse.redirect(new URL("/dashboard", url));
 }

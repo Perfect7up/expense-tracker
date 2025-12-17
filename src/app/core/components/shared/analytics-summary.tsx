@@ -35,6 +35,7 @@ import {
   Cell,
   Legend,
 } from "recharts";
+import Loading from "./loading";
 
 interface AnalyticsData {
   period: string;
@@ -151,16 +152,8 @@ export function AnalyticsSummary({
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 space-y-4">
-        <div className="w-16 h-16 rounded-full bg-linear-to-br from-blue-100 to-cyan-100 flex items-center justify-center animate-pulse">
-          <BarChart3 className="w-8 h-8 text-blue-500" />
-        </div>
-        <p className="text-lg text-slate-700 font-medium">
-          Loading analytics...
-        </p>
-        <p className="text-sm text-slate-500">Analyzing your data patterns</p>
-      </div>
-    );
+     <Loading />
+     );
   }
 
   return (

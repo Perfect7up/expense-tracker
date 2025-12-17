@@ -5,9 +5,8 @@ interface PageHeaderProps {
   description: string;
   icon: ReactNode;
   tagline: string;
-  children: ReactNode;
+  children?: ReactNode;
 }
-
 export function PageHeader({
   title,
   description,

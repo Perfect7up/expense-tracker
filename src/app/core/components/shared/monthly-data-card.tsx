@@ -26,6 +26,7 @@ import {
   Tag,
   Pencil,
 } from "lucide-react";
+import Loading from "./loading";
 
 // ... (MonthlyDataCardProps and MonthlyDataCard function remain exactly the same) ...
 
@@ -127,15 +128,7 @@ export function MonthlyDataCard<T>({
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 space-y-4">
-        <div className="w-16 h-16 rounded-full bg-linear-to-br from-blue-100 to-cyan-100 flex items-center justify-center animate-pulse">
-          <Calendar className="w-8 h-8 text-blue-500" />
-        </div>
-        <p className="text-lg text-slate-700 font-medium">
-          Loading {title.toLowerCase()}...
-        </p>
-        <p className="text-sm text-slate-500">Fetching your financial data</p>
-      </div>
+      <Loading />
     );
   }
 

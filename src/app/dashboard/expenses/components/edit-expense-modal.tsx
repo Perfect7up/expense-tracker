@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback } from "react"; // Added useCallback
+import { useCallback } from "react";
 import { expenseSchema } from "@/app/core/schema/expense";
 import { useExpenses } from "@/app/core/hooks/use-expenses";
 import { useExpenseCategories } from "@/app/core/hooks/use-categories";
+import { useSubscription } from "@/app/core/hooks/use-subscription"; // Use your hook
 import { useEditExpenseStore } from "../../store/use-edit-expense-store";
 import { GenericEditModal } from "@/app/core/components/shared/generic-edit-modal";
 
@@ -20,9 +21,8 @@ export function EditExpenseModal() {
   const { updateExpense, deleteExpense, isUpdating, isDeleting } =
     useExpenses();
   const { data: categories } = useExpenseCategories();
+  const { subscriptions, formatCycle } = useSubscription(); // Get subscriptions from your hook
 
-  // FIX: Wrap handlers in useCallback to maintain stable references
-  // This prevents the child modal from treating them as "changed props" on every render
   const handleUpdate = useCallback(
     async ({ id, data }: { id: string; data: any }) => {
       await updateExpense({ id, data });
@@ -50,6 +50,7 @@ export function EditExpenseModal() {
       updateItem={handleUpdate}
       deleteItem={handleDelete}
       categories={categories}
+      subscriptions={subscriptions} // Pass subscriptions
       isUpdating={isUpdating}
       isDeleting={isDeleting}
       title="Edit Expense"
@@ -61,6 +62,7 @@ export function EditExpenseModal() {
         currency: "USD",
         note: "",
         categoryId: "none",
+        subscriptionId: "none",
         occurredAt: new Date().toISOString().slice(0, 16),
       }}
       dateField={{
@@ -71,6 +73,8 @@ export function EditExpenseModal() {
       getItemId={(item) => item.id}
       getItemAmount={(item) => item.amount}
       getItemNote={(item) => item.note || ""}
+      getItemCategory={(item) => item.categoryId || null}
+      getItemSubscription={(item) => item.subscriptionId || null}
     />
   );
 }
