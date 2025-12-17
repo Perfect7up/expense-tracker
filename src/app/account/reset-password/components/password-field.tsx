@@ -1,3 +1,4 @@
+'use client'
 import { useState } from "react";
 import { Lock, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/app/core/components/ui/input";
