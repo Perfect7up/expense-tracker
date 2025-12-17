@@ -10,7 +10,6 @@ import { format } from "date-fns";
 
 interface SubscriptionListProps {
   onEdit: (subscription: any) => void;
-  // FIX: Make onAdd optional since the main add button is now in the header
   onAdd?: () => void;
 }
 

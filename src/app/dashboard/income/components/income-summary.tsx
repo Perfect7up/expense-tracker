@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { AnalyticsSummary } from "@/app/core/components/shared/analytics-summary";
-import { useIncomeSummary } from "@/app/core/hooks/use-income-aggregate";
+import { useIncomeSummary } from "@/app/dashboard/income/hooks/use-income-aggregate";
 
 interface IncomeSummaryProps {
   showEmptyState?: boolean;

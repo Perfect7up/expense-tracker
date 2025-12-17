@@ -77,7 +77,7 @@ export default function Navbar() {
                 </Link>
               </div>
             </div>
-            <Button
+            <button
               className="md:hidden p-2 rounded-lg hover:bg-slate-100 transition-colors"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
@@ -86,7 +86,7 @@ export default function Navbar() {
               ) : (
                 <Menu className="w-6 h-6 text-slate-700" />
               )}
-            </Button>
+            </button>
           </div>
         </div>
       </nav>

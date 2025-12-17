@@ -215,8 +215,8 @@ export function GenericList<T extends { id: string | number; note?: string }>({
 
   if (isError) {
     return (
-      <div className="text-center p-10 bg-red-50 rounded-xl text-red-600">
-        <p>Error loading data: {error?.message}</p>
+      <div className="text-center p-6 sm:p-10 bg-red-50 rounded-xl text-red-600 mx-2 sm:mx-0">
+        <p className="text-sm sm:text-base">Error loading data: {error?.message}</p>
         <Button
           variant="outline"
           onClick={() => window.location.reload()}
@@ -229,41 +229,45 @@ export function GenericList<T extends { id: string | number; note?: string }>({
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">{title}</h2>
-          <p className="text-slate-500">{description}</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {onExport && (
-            <Button
-              variant="outline"
-              className="hidden sm:flex rounded-xl border-slate-200 hover:bg-slate-50 text-slate-600"
-              onClick={() => onExport(processedData, title)}
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Export
-            </Button>
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header Section - Only show if title/desc exists to avoid empty gap */}
+      {(title || description || onExport || addButton) && (
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          {(title || description) && (
+             <div className="min-w-0">
+              {title && <h2 className="text-xl sm:text-2xl font-bold text-slate-800">{title}</h2>}
+              {description && <p className="text-sm text-slate-500 mt-1">{description}</p>}
+            </div>
           )}
-          {addButton}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+            {onExport && (
+              <Button
+                variant="outline"
+                className="rounded-xl border-slate-200 hover:bg-slate-50 text-slate-600 justify-center"
+                onClick={() => onExport(processedData, title)}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+            )}
+            {addButton}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Toolbar Section */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200/60 shadow-sm space-y-4 md:space-y-0 md:flex md:items-center md:gap-4">
+      {/* Toolbar Section - Responsive Stack */}
+      <div className="bg-white p-3 sm:p-4 rounded-xl border border-slate-200/60 shadow-sm flex flex-col md:flex-row gap-3 md:items-center">
         {/* Search */}
-        <div className="relative flex-1">
+        <div className="relative flex-1 w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             type="text"
             placeholder={
               type === "subscription" 
-                ? "Search by name, amount, category..." 
+                ? "Search by name, amount..." 
                 : type === "investment"
-                ? "Search by name, symbol, category, returns..."
-                : "Search by note, amount, category, subscription..."
+                ? "Search by name, symbol..."
+                : "Search by note, amount..."
             }
             value={searchTerm}
             onChange={(e) => handleSearch(e.target.value)}
@@ -272,13 +276,13 @@ export function GenericList<T extends { id: string | number; note?: string }>({
         </div>
 
         {/* Sorting Controls */}
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-3 w-full md:w-auto">
           {hasSorting && (
-            <div className="flex items-center gap-2 bg-slate-50 rounded-lg border border-slate-200 p-1">
+            <div className="flex items-center gap-2 bg-slate-50 rounded-lg border border-slate-200 p-1 w-full md:w-auto">
               <select
                 value={sortBy}
                 onChange={handleSortByChange}
-                className="bg-transparent border-none text-sm text-slate-600 focus:ring-0 cursor-pointer py-1 pl-2 pr-1"
+                className="bg-transparent border-none text-sm text-slate-600 focus:ring-0 cursor-pointer py-1.5 pl-2 pr-1 flex-1 md:flex-none"
               >
                 <option value="date">Date</option>
                 <option value="amount">Amount</option>
@@ -291,7 +295,7 @@ export function GenericList<T extends { id: string | number; note?: string }>({
               <div className="w-px h-4 bg-slate-300 mx-1" />
               <button
                 onClick={toggleSortOrder}
-                className="p-1 hover:bg-slate-200 rounded-md transition-colors"
+                className="p-1.5 hover:bg-slate-200 rounded-md transition-colors"
                 title={`Sort ${
                   sortOrder === "asc" ? "Ascending" : "Descending"
                 }`}
@@ -309,7 +313,7 @@ export function GenericList<T extends { id: string | number; note?: string }>({
 
       {/* Filter Summary */}
       {hasFilters && (
-        <div className="flex items-center gap-2 text-sm text-slate-500">
+        <div className="flex items-center gap-2 text-sm text-slate-500 px-1">
           <Filter className="w-3 h-3" />
           <span>Found {processedData.length} results</span>
           <button
@@ -331,16 +335,16 @@ export function GenericList<T extends { id: string | number; note?: string }>({
         ) : processedData.length === 0 ? (
           renderEmptyState(searchTerm, hasFilters, clearAllFilters)
         ) : (
-          <div className="grid gap-4">
+          <div className="grid gap-3 sm:gap-4">
             {paginatedData.map((item) => renderItem(item, onEdit))}
           </div>
         )}
       </div>
 
-      {/* Pagination Section */}
+      {/* Pagination Section - Responsive Wrap */}
       {processedData.length > 0 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-100">
-          <div className="text-sm text-slate-500">
+          <div className="text-sm text-slate-500 text-center sm:text-left">
             Showing{" "}
             <span className="font-medium text-slate-900">{startIndex + 1}</span>{" "}
             to{" "}
@@ -360,17 +364,19 @@ export function GenericList<T extends { id: string | number; note?: string }>({
               size="sm"
               onClick={() => onPageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              className="h-9 w-9 p-0"
+              className="h-8 w-8 sm:h-9 sm:w-9 p-0"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 flex-wrap justify-center">
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                 let p = i + 1;
+                // Simple logic to keep current page visible if > 5 pages
                 if (totalPages > 5) {
-                  if (currentPage > 3) p = currentPage - 3 + i;
-                  if (p > totalPages) p = i + (totalPages - 4);
+                  if (currentPage > 3) p = currentPage - 2 + i; // Center current page
+                  if (p > totalPages) p = i + (totalPages - 4); // Stick to end
+                  if (p < 1) p = i + 1; // Stick to start
                 }
 
                 return (
@@ -379,7 +385,7 @@ export function GenericList<T extends { id: string | number; note?: string }>({
                     variant={currentPage === p ? "default" : "ghost"}
                     size="sm"
                     onClick={() => onPageChange(p)}
-                    className={`h-9 w-9 p-0 ${
+                    className={`h-8 w-8 sm:h-9 sm:w-9 p-0 ${
                       currentPage === p
                         ? "bg-blue-600 hover:bg-blue-700"
                         : "text-slate-600 hover:bg-slate-100"
@@ -396,7 +402,7 @@ export function GenericList<T extends { id: string | number; note?: string }>({
               size="sm"
               onClick={() => onPageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="h-9 w-9 p-0"
+              className="h-8 w-8 sm:h-9 sm:w-9 p-0"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>

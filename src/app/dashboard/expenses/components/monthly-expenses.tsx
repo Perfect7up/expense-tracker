@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useExpenses } from "@/app/core/hooks/use-expenses";
+import { useExpenses } from "../hooks/use-expenses";
 import { useExpenseCategories } from "@/app/core/hooks/use-categories";
 import { EditExpenseModal } from "./edit-expense-modal";
-import { useEditExpenseStore } from "../../store/use-edit-expense-store";
+import { useEditExpenseStore } from "../store/use-edit-expense-store";
 import { Button } from "@/app/core/components/ui/button";
 import { DollarSign, Plus } from "lucide-react";
 import {
@@ -188,7 +188,7 @@ export function MonthlyExpenses({ selectedDate }: MonthlyExpensesProps) {
         title="Monthly Expenses"
         description="Track your monthly spending patterns"
         type="expense"
-        icon={<DollarSign className="w-6 h-6 text-white" />}
+        icon={<DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-white" />}
         selectedDate={selectedDate}
         currentMonth={currentMonth}
         onMonthChange={setCurrentMonth}
@@ -213,7 +213,7 @@ export function MonthlyExpenses({ selectedDate }: MonthlyExpensesProps) {
         }
         onPageChange={setCurrentPage}
         addButton={
-          <Button className="rounded-xl bg-white/20 backdrop-blur-sm hover:bg-white/30 border border-white/30 text-white gap-2 px-4 h-12 transition-all duration-300">
+          <Button className="w-full sm:w-auto rounded-xl bg-white/20 backdrop-blur-sm hover:bg-white/30 border border-white/30 text-white gap-2 px-4 h-10 sm:h-12 transition-all duration-300">
             <Plus className="h-4 w-4" />
             Add Expense
           </Button>

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useIncomes } from "@/app/core/hooks/use-income";
-import { useIncomeCategories } from "@/app/core/hooks/use-categories"; // ✅ Use specific hook
+import { useIncomes } from "@/app/dashboard/income/hooks/use-income";
+import { useIncomeCategories } from "@/app/core/hooks/use-categories";
 import { Button } from "@/app/core/components/ui/button";
 import { Wallet, Plus } from "lucide-react";
 import {
@@ -10,8 +10,8 @@ import {
   DataItemRenderer,
   EmptyStateRenderer,
 } from "@/app/core/components/shared/monthly-data-card";
-import { EditIncomeModal } from "./edit-income-modal"; // ✅ Import Edit Modal
-import { IncomeForm } from "./income-form"; // ✅ Import Create Form
+import { EditIncomeModal } from "./edit-income-modal";
+import { IncomeForm } from "./income-form";
 
 interface IncomeWithCategory {
   id: string;
@@ -32,9 +32,7 @@ interface MonthlyIncomesProps {
 }
 
 export function MonthlyIncomes({ selectedDate }: MonthlyIncomesProps) {
-  // ✅ FIX: Destructure directly from the updated hook
   const { incomes: rawIncomes, isLoading, isError, error } = useIncomes();
-
   const { data: categories } = useIncomeCategories();
 
   // State
@@ -56,7 +54,7 @@ export function MonthlyIncomes({ selectedDate }: MonthlyIncomesProps) {
     }
   }
 
-  // ✅ FIX: Memoize and map data using API structure or Category List fallback
+  // Map data with category names
   const mappedIncomes: IncomeWithCategory[] = useMemo(() => {
     return (rawIncomes || []).map((income: any) => ({
       ...income,
@@ -171,14 +169,11 @@ export function MonthlyIncomes({ selectedDate }: MonthlyIncomesProps) {
     window.URL.revokeObjectURL(url);
   };
 
-  // ✅ FIX: Pass EditIncomeModal as the action
   const renderIncomeItem = (income: IncomeWithCategory) => (
     <DataItemRenderer
       key={income.id}
       item={income}
       type="income"
-      // Assuming DataItemRenderer accepts 'action' or we replace the default edit button
-      // If DataItemRenderer renders its own button calling onEdit, pass null to onEdit and pass customAction
       action={<EditIncomeModal income={income} />}
     />
   );
@@ -202,7 +197,7 @@ export function MonthlyIncomes({ selectedDate }: MonthlyIncomesProps) {
       title="Monthly Incomes"
       description="Track your monthly income patterns"
       type="income"
-      icon={<Wallet className="w-6 h-6 text-white" />}
+      icon={<Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-white" />}
       selectedDate={selectedDate}
       currentMonth={currentMonth}
       onMonthChange={setCurrentMonth}
@@ -226,14 +221,12 @@ export function MonthlyIncomes({ selectedDate }: MonthlyIncomesProps) {
         setCurrentPage((prev) => Math.min(prev + 1, totalPages))
       }
       onPageChange={setCurrentPage}
-      // ✅ FIX: Wrap button with IncomeForm
+      // Added justify-center to the Button to fix alignment
       addButton={
-        <IncomeForm onSuccess={() => setCurrentMonth(new Date())}>
-          <Button className="rounded-xl bg-white/20 backdrop-blur-sm hover:bg-white/30 border border-white/30 text-white gap-2 px-4 h-12 transition-all duration-300">
-            <Plus className="h-4 w-4" />
-            Add Income
-          </Button>
-        </IncomeForm>
+        <Button className="w-full sm:w-auto rounded-xl bg-white/20 backdrop-blur-sm hover:bg-white/30 border border-white/30 text-white gap-2 px-4 h-10 sm:h-12 transition-all duration-300">
+          <Plus className="h-4 w-4" />
+          Add Income
+        </Button>
       }
     />
   );

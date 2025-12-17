@@ -1,14 +1,13 @@
 "use client";
 
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/app/core/lib/supabase/client";
-import {
-  signinSchema,
-  type SigninSchema,
-} from "@/app/core/lib/validations/auth";
+import { useState } from "react";
+import Link from "next/link";
+import { Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { FcGoogle } from "react-icons/fc";
+import { useSigninForm } from "../hooks/use-signin-form";
+import { useSignin } from "../hooks/use-signin";
+import { useGoogleSignin } from "../hooks/use-google-signin";
+import { useSigninStore } from "../store/store";
 import {
   Form,
   FormControl,
@@ -20,69 +19,17 @@ import {
 import { Input } from "@/app/core/components/ui/input";
 import { Button } from "@/app/core/components/ui/button";
 import { Alert, AlertDescription } from "@/app/core/components/ui/alert";
-import { Eye, EyeOff, Loader2, Mail, Lock } from "lucide-react";
-import { useState } from "react";
-import Link from "next/link";
-import { FcGoogle } from "react-icons/fc"; // Make sure to install react-icons
 
 export default function SigninForm() {
   const [showPassword, setShowPassword] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false); // Local state for Google loading
-  const router = useRouter();
-  const supabase = createClient();
+  const form = useSigninForm();
+  const signinMutation = useSignin();
+  const { signInWithGoogle } = useGoogleSignin();
+  const { isLoading, isGoogleLoading, error } = useSigninStore();
 
-  const form = useForm<SigninSchema>({
-    resolver: zodResolver(signinSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  });
-
-  // --- Email/Password Mutation ---
-  const mutation = useMutation({
-    mutationFn: async (data: SigninSchema) => {
-      const { data: authData, error } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
-      });
-
-      if (error) throw new Error(error.message);
-      return authData;
-    },
-    onSuccess: () => {
-      router.refresh();
-      router.push("/dashboard");
-    },
-    onError: (error: Error) => {
-      console.error("Sign in error:", error.message);
-    },
-  });
-
-  const onSubmit = (data: SigninSchema) => {
-    mutation.mutate(data);
+  const onSubmit = (data: any) => {
+    signinMutation.mutate(data);
   };
-
-  // --- Google Sign In Logic ---
-  const signInWithGoogle = async () => {
-    setIsGoogleLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          // Based on your auth route, this will handle the callback
-          redirectTo: `${location.origin}/auth/callback`,
-        },
-      });
-      if (error) throw error;
-      // Note: Supabase will redirect the window, so we don't need manual routing here
-    } catch (error) {
-      console.error("Google auth error:", error);
-      setIsGoogleLoading(false);
-    }
-  };
-
-  const isLoading = mutation.isPending || isGoogleLoading;
 
   return (
     <>
@@ -97,13 +44,13 @@ export default function SigninForm() {
                 <FormLabel className="text-slate-700">Email Address</FormLabel>
                 <FormControl>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
                     <Input
                       {...field}
                       placeholder="you@example.com"
                       type="email"
-                      className="pl-10 h-11 bg-white border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
-                      disabled={isLoading}
+                      className="pl-9 sm:pl-10 h-10 sm:h-11 bg-white border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                      disabled={isLoading || isGoogleLoading}
                     />
                   </div>
                 </FormControl>
@@ -122,31 +69,31 @@ export default function SigninForm() {
                   <FormLabel className="text-slate-700">Password</FormLabel>
                   <Link
                     href="/account/forgot-password"
-                    className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                    className="text-xs sm:text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
                   >
                     Forgot password?
                   </Link>
                 </div>
                 <FormControl>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
                     <Input
                       {...field}
                       placeholder="••••••••"
                       type={showPassword ? "text" : "password"}
-                      className="pl-10 pr-10 h-11 bg-white border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
-                      disabled={isLoading}
+                      className="pl-9 sm:pl-10 pr-9 sm:pr-10 h-10 sm:h-11 bg-white border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                      disabled={isLoading || isGoogleLoading}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                      disabled={isLoading}
+                      disabled={isLoading || isGoogleLoading}
                     >
                       {showPassword ? (
-                        <EyeOff className="w-5 h-5" />
+                        <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" />
                       ) : (
-                        <Eye className="w-5 h-5" />
+                        <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
                       )}
                     </button>
                   </div>
@@ -157,10 +104,10 @@ export default function SigninForm() {
           />
 
           {/* Error Alert */}
-          {mutation.isError && (
+          {error && (
             <Alert variant="destructive" className="border-red-200 bg-red-50">
-              <AlertDescription className="text-red-700">
-                {mutation.error.message}
+              <AlertDescription className="text-red-700 text-sm">
+                {error}
               </AlertDescription>
             </Alert>
           )}
@@ -168,12 +115,12 @@ export default function SigninForm() {
           {/* Submit Button */}
           <Button
             type="submit"
-            disabled={isLoading}
-            className="w-full h-11 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl transition-all duration-300"
+            disabled={isLoading || isGoogleLoading}
+            className="w-full h-10 sm:h-11 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl transition-all duration-300 text-sm sm:text-base"
           >
-            {mutation.isPending ? (
+            {isLoading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <div className="mr-2 h-4 w-4 sm:h-5 sm:w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
                 Signing in...
               </>
             ) : (
@@ -198,13 +145,13 @@ export default function SigninForm() {
         type="button"
         variant="outline"
         onClick={signInWithGoogle}
-        disabled={isLoading}
-        className="w-full h-11 bg-white border-slate-200 hover:bg-slate-50 text-slate-700 font-medium"
+        disabled={isLoading || isGoogleLoading}
+        className="w-full h-10 sm:h-11 bg-white border-slate-200 hover:bg-slate-50 text-slate-700 font-medium text-sm sm:text-base"
       >
         {isGoogleLoading ? (
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          <div className="mr-2 h-4 w-4 sm:h-5 sm:w-5 animate-spin rounded-full border-2 border-slate-400 border-t-transparent" />
         ) : (
-          <FcGoogle className="mr-2 h-5 w-5" />
+          <FcGoogle className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
         )}
         Google
       </Button>

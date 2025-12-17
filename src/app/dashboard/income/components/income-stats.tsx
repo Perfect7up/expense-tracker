@@ -1,6 +1,6 @@
 "use client";
 
-import { useIncomeStats } from "@/app/core/hooks/use-income-stats";
+import { useIncomeStats } from "@/app/dashboard/income/hooks/use-income-stats";
 import {
   DollarSign,
   CalendarDays,

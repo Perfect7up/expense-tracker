@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sparkles, Coffee, Moon, Sun } from "lucide-react";
 
 interface WelcomeMessageProps {
   userName: string | null | undefined;
@@ -32,25 +31,11 @@ export function WelcomeMessage({ userName, isLoading }: WelcomeMessageProps) {
     };
 
     updateGreeting();
-    // Update greeting every minute
     const interval = setInterval(updateGreeting, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  const getIcon = () => {
-    switch (timeOfDay) {
-      case "morning":
-        return <Sun className="w-5 h-5 text-amber-500" />;
-      case "afternoon":
-        return <Sparkles className="w-5 h-5 text-blue-500" />;
-      case "evening":
-        return <Moon className="w-5 h-5 text-indigo-500" />;
-      case "night":
-        return <Coffee className="w-5 h-5 text-purple-500" />;
-      default:
-        return <Sparkles className="w-5 h-5 text-blue-500" />;
-    }
-  };
+
 
   if (isLoading) {
     return (
@@ -67,9 +52,6 @@ export function WelcomeMessage({ userName, isLoading }: WelcomeMessageProps) {
   return (
     <div className="flex items-center justify-between gap-4 mb-8">
       <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-xl  flex items-center justify-center shadow-lg shadow-blue-500/20">
-          {getIcon()}
-        </div>
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
             {greeting}{userName ? `, ${userName}!` : "!"}

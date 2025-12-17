@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback } from "react";
-import { expenseSchema } from "@/app/core/schema/expense";
-import { useExpenses } from "@/app/core/hooks/use-expenses";
+import { expenseSchema } from "@/app/dashboard/expenses/schema/expense";
+import { useExpenses } from "../hooks/use-expenses";
 import { useExpenseCategories } from "@/app/core/hooks/use-categories";
-import { useSubscription } from "@/app/core/hooks/use-subscription"; // Use your hook
-import { useEditExpenseStore } from "../../store/use-edit-expense-store";
+import { useSubscription } from "@/app/core/hooks/use-subscription";
+import { useEditExpenseStore } from "../store/use-edit-expense-store";
 import { GenericEditModal } from "@/app/core/components/shared/generic-edit-modal";
 
 export function EditExpenseModal() {
@@ -21,7 +21,7 @@ export function EditExpenseModal() {
   const { updateExpense, deleteExpense, isUpdating, isDeleting } =
     useExpenses();
   const { data: categories } = useExpenseCategories();
-  const { subscriptions, formatCycle } = useSubscription(); // Get subscriptions from your hook
+  const { subscriptions } = useSubscription();
 
   const handleUpdate = useCallback(
     async ({ id, data }: { id: string; data: any }) => {

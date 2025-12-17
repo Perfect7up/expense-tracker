@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { expenseSchema, ExpenseFormType } from "@/app/core/schema/expense";
-import { useExpenses } from "@/app/core/hooks/use-expenses";
+import { expenseSchema, ExpenseFormType } from "@/app/dashboard/expenses/schema/expense";
+import { useExpenses } from "../hooks/use-expenses";
 import { useExpenseCategories } from "@/app/core/hooks/use-categories";
 
 import { Button } from "@/app/core/components/ui/button";

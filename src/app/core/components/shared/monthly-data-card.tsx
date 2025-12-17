@@ -1,7 +1,6 @@
 "use client";
 
 import { ReactNode } from "react";
-// ... (Your existing imports remain the same) ...
 import {
   CardContent,
   CardHeader,
@@ -25,10 +24,8 @@ import {
   DollarSign,
   Tag,
   Pencil,
+  Loader2,
 } from "lucide-react";
-import Loading from "./loading";
-
-// ... (MonthlyDataCardProps and MonthlyDataCard function remain exactly the same) ...
 
 export interface MonthlyDataCardProps<T> {
   // Core data
@@ -121,32 +118,34 @@ export function MonthlyDataCard<T>({
     onMonthChange(nextMonth);
   };
 
-  // All components now use blue theme
   const getTypeColor = () => {
     return "from-blue-500 to-cyan-500";
   };
 
   if (isLoading) {
     return (
-      <Loading />
+       <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+         <Loader2 className="w-10 h-10 animate-spin mb-4 text-blue-500" />
+         <p>Loading data...</p>
+       </div>
     );
   }
 
   if (isError) {
     return (
-      <div className="text-center py-16">
-        <div className="w-20 h-20 rounded-full bg-linear-to-br from-red-100 to-pink-100 flex items-center justify-center mx-auto mb-4">
-          <BarChart3 className="w-10 h-10 text-red-500" />
+      <div className="text-center py-12 sm:py-16 px-4">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-red-100 to-pink-100 flex items-center justify-center mx-auto mb-4">
+          <BarChart3 className="w-8 h-8 sm:w-10 sm:h-10 text-red-500" />
         </div>
-        <p className="text-lg font-semibold text-red-600">
+        <p className="text-base sm:text-lg font-semibold text-red-600">
           Failed to load {title.toLowerCase()}
         </p>
-        <p className="text-sm text-slate-500 mt-2 max-w-md mx-auto">
+        <p className="text-xs sm:text-sm text-slate-500 mt-2 max-w-md mx-auto">
           {error?.message ||
             `There was an error loading your ${title.toLowerCase()}. Please try again.`}
         </p>
         <Button
-          className="mt-4 rounded-full bg-linear-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
+          className="mt-4 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
           onClick={() => window.location.reload()}
         >
           Try Again
@@ -159,73 +158,78 @@ export function MonthlyDataCard<T>({
     <div className="relative">
       {/* Background effects */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
-        <div className="absolute top-1/4 left-1/4 w-48 h-48 bg-blue-100/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-cyan-100/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/4 left-1/4 w-32 sm:w-48 h-32 sm:h-48 bg-blue-100/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-32 sm:w-48 h-32 sm:h-48 bg-cyan-100/10 rounded-full blur-3xl" />
       </div>
 
-      <div className="bg-white/80 backdrop-blur-sm border border-slate-200/50 rounded-2xl shadow-xl overflow-hidden">
+      <div className="bg-white/80 backdrop-blur-sm border border-slate-200/50 rounded-xl sm:rounded-2xl shadow-xl overflow-hidden">
         {/* Header - Always blue theme */}
-        <div className={`relative bg-linear-to-r ${getTypeColor()} p-6`}>
+        <div className={`relative bg-gradient-to-r ${getTypeColor()} p-4 sm:p-6`}>
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16 blur-2xl" />
           <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-12 -translate-x-12 blur-2xl" />
 
           <CardHeader className="relative z-10 p-0">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30 shrink-0">
                   {icon}
                 </div>
                 <div>
-                  <CardTitle className="text-2xl font-bold text-white">
+                  <CardTitle className="text-xl sm:text-2xl font-bold text-white">
                     {title}
                   </CardTitle>
-                  <p className="text-sm text-blue-100/80">{description}</p>
+                  <p className="text-xs sm:text-sm text-blue-100/80">{description}</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                {addButton}
-                <Button
-                  onClick={onExport}
-                  disabled={data.length === 0}
-                  className="rounded-xl bg-white/20 backdrop-blur-sm hover:bg-white/30 border border-white/30 text-white gap-2 px-4 h-12 transition-all duration-300 group"
-                >
-                  <Download className="h-4 w-4" />
-                  Export Month
-                  <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </div>
+              <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 w-full md:w-auto">
+  <div className="flex justify-center w-full">
+    {addButton}
+  </div>
+  <div className="flex justify-center w-full">
+    <Button
+      onClick={onExport}
+      disabled={data.length === 0}
+      className="w-full sm:w-auto rounded-xl bg-white/20 backdrop-blur-sm hover:bg-white/30 border border-white/30 text-white gap-2 px-4 h-10 sm:h-12 transition-all duration-300 group whitespace-nowrap text-sm"
+    >
+      <Download className="h-4 w-4" />
+      <span className="hidden sm:inline">Export Month</span>
+      <span className="sm:hidden">Export</span>
+      <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+    </Button>
+  </div>
+</div>
             </div>
           </CardHeader>
         </div>
 
-        <CardContent className="p-6 space-y-6">
+        <CardContent className="p-3 sm:p-6 space-y-4 sm:space-y-6">
           {/* Month Navigation */}
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 bg-linear-to-r from-blue-50/50 to-cyan-50/50 rounded-xl border border-blue-100/30">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-gradient-to-r from-blue-50/50 to-cyan-50/50 rounded-xl border border-blue-100/30">
+            <div className="flex items-center justify-between w-full md:w-auto gap-3">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={goToPreviousMonth}
-                className="rounded-lg w-10 h-10 border-blue-200/50 hover:bg-blue-50 hover:border-blue-300"
+                className="rounded-lg w-9 h-9 sm:w-10 sm:h-10 border-blue-200/50 hover:bg-blue-50 hover:border-blue-300 -mr-2.5"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
 
-              <div className="text-center">
-                <h3 className="text-xl font-bold text-slate-900">
+              <div className="text-center min-w-[140px]">
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900">
                   {currentMonth.toLocaleDateString("en-US", {
                     month: "long",
                     year: "numeric",
                   })}
                 </h3>
                 {!isCurrentMonth ? (
-                  <Badge className="mt-1 bg-linear-to-r from-blue-100 to-cyan-100 text-blue-700 border-blue-200/50">
+                  <Badge className="mt-0.5 sm:mt-1 bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 border-blue-200/50 text-[10px] sm:text-xs">
                     <Clock className="w-3 h-3 mr-1" />
-                    Viewing past month
+                    Viewing past
                   </Badge>
                 ) : (
-                  <Badge className="mt-1 bg-linear-to-r from-blue-100 to-cyan-100 text-blue-700 border-blue-200/50">
+                  <Badge className="mt-0.5 sm:mt-1 bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 border-blue-200/50 text-[10px] sm:text-xs">
                     <Zap className="w-3 h-3 mr-1" />
                     Current month
                   </Badge>
@@ -241,7 +245,7 @@ export function MonthlyDataCard<T>({
                   currentMonth.getMonth() >= now.getMonth() &&
                   currentMonth.getFullYear() >= now.getFullYear()
                 }
-                className="rounded-lg w-10 h-10 border-blue-200/50 hover:bg-blue-50 hover:border-blue-300 disabled:opacity-50"
+                className="rounded-lg w-9 h-9 sm:w-10 sm:h-10 border-blue-200/50 hover:bg-blue-50 hover:border-blue-300 disabled:opacity-50 -ml-2.5"
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -251,75 +255,75 @@ export function MonthlyDataCard<T>({
               variant="outline"
               onClick={onCurrentMonthClick}
               disabled={isCurrentMonth}
-              className="rounded-xl border-blue-200/50 hover:bg-blue-50 hover:border-blue-300 px-4 h-10"
+              className="w-full md:w-auto rounded-xl border-blue-200/50 hover:bg-blue-50 hover:border-blue-300 px-4 h-9 sm:h-10 text-sm"
             >
-              <Sparkles className="h-4 w-4 mr-2" />
+              <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
               Current Month
             </Button>
           </div>
 
-          {/* Summary Cards - All blue variants */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-linear-to-r from-blue-50/50 to-cyan-50/50 border border-blue-200/50 rounded-2xl p-6">
+          {/* Summary Cards - Responsive Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="bg-gradient-to-r from-blue-50/50 to-cyan-50/50 border border-blue-200/50 rounded-xl sm:rounded-2xl p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-slate-600 flex items-center gap-2">
+                  <p className="text-xs sm:text-sm text-slate-600 flex items-center gap-2">
                     <DollarSign className="w-4 h-4" /> Total Amount
                   </p>
-                  <p className="text-2xl font-bold text-slate-900 mt-2">
+                  <p className="text-xl sm:text-2xl font-bold text-slate-900 mt-1 sm:mt-2">
                     ${totalAmount.toFixed(2)}
                   </p>
                 </div>
-                <div className="w-12 h-12 rounded-xl bg-linear-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-                  <TrendingUp className="w-6 h-6 text-white" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                  <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
               </div>
             </div>
 
-            <div className="bg-linear-to-r from-blue-100/50 to-cyan-100/50 border border-blue-200/50 rounded-2xl p-6">
+            <div className="bg-gradient-to-r from-blue-100/50 to-cyan-100/50 border border-blue-200/50 rounded-xl sm:rounded-2xl p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-slate-600 flex items-center gap-2">
-                    <FileText className="w-4 h-4" /> Total {title.split(" ")[1]}
+                  <p className="text-xs sm:text-sm text-slate-600 flex items-center gap-2">
+                    <FileText className="w-4 h-4" /> Total Items
                   </p>
-                  <p className="text-2xl font-bold text-slate-900 mt-2">
+                  <p className="text-xl sm:text-2xl font-bold text-slate-900 mt-1 sm:mt-2">
                     {itemCount}
                   </p>
                 </div>
-                <div className="w-12 h-12 rounded-xl bg-linear-to-br from-blue-600 to-cyan-600 flex items-center justify-center">
-                  <FileText className="w-6 h-6 text-white" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-600 flex items-center justify-center shadow-lg shadow-blue-600/20">
+                  <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
               </div>
             </div>
 
-            <div className="bg-linear-to-r from-sky-50/50 to-blue-50/50 border border-sky-200/50 rounded-2xl p-6">
+            <div className="bg-gradient-to-r from-sky-50/50 to-blue-50/50 border border-sky-200/50 rounded-xl sm:rounded-2xl p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-slate-600 flex items-center gap-2">
+                  <p className="text-xs sm:text-sm text-slate-600 flex items-center gap-2">
                     <BarChart3 className="w-4 h-4" /> Average
                   </p>
-                  <p className="text-2xl font-bold text-slate-900 mt-2">
+                  <p className="text-xl sm:text-2xl font-bold text-slate-900 mt-1 sm:mt-2">
                     ${averageAmount.toFixed(2)}
                   </p>
                 </div>
-                <div className="w-12 h-12 rounded-xl bg-linear-to-br from-sky-500 to-blue-500 flex items-center justify-center">
-                  <BarChart3 className="w-6 h-6 text-white" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-sky-500 to-blue-500 flex items-center justify-center shadow-lg shadow-sky-500/20">
+                  <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
               </div>
             </div>
 
-            <div className="bg-linear-to-r from-indigo-50/50 to-blue-50/50 border border-indigo-200/50 rounded-2xl p-6">
+            <div className="bg-gradient-to-r from-indigo-50/50 to-blue-50/50 border border-indigo-200/50 rounded-xl sm:rounded-2xl p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-slate-600 flex items-center gap-2">
+                  <p className="text-xs sm:text-sm text-slate-600 flex items-center gap-2">
                     <Target className="w-4 h-4" /> Highest
                   </p>
-                  <p className="text-2xl font-bold text-slate-900 mt-2">
+                  <p className="text-xl sm:text-2xl font-bold text-slate-900 mt-1 sm:mt-2">
                     ${highestAmount.toFixed(2)}
                   </p>
                 </div>
-                <div className="w-12 h-12 rounded-xl bg-linear-to-br from-indigo-500 to-blue-500 flex items-center justify-center">
-                  <Target className="w-6 h-6 text-white" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                  <Target className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
               </div>
             </div>
@@ -330,39 +334,39 @@ export function MonthlyDataCard<T>({
             renderEmptyState()
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center justify-between px-2">
-                <h4 className="font-semibold text-slate-900 flex items-center gap-2">
+              <div className="flex items-center justify-between px-1 sm:px-2">
+                <h4 className="font-semibold text-slate-900 flex items-center gap-2 text-sm sm:text-base">
                   <FileText className="w-4 h-4" />
                   {title} ({itemCount} total)
                 </h4>
                 {showPagination && (
-                  <Badge className="bg-linear-to-r from-blue-100 to-cyan-100 text-blue-700 border-blue-200/50">
+                  <Badge className="bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 border-blue-200/50 text-[10px] sm:text-xs">
                     Page {currentPage} of {totalPages}
                   </Badge>
                 )}
               </div>
 
-              <div className="space-y-3">{data.map(renderItem)}</div>
+              <div className="grid gap-3">{data.map(renderItem)}</div>
 
-              {/* Pagination Controls */}
+              {/* Pagination Controls - Justify Center */}
               {showPagination &&
                 totalPages > 1 &&
                 onPreviousPage &&
                 onNextPage &&
                 onPageChange && (
-                  <div className="flex justify-between items-center pt-4 border-t border-slate-200/50">
+                  <div className="flex justify-center items-center pt-4 border-t border-slate-200/50 gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={onPreviousPage}
                       disabled={currentPage === 1}
-                      className="rounded-lg border-blue-200/50 hover:bg-blue-50/50 hover:border-blue-300/50 gap-1"
+                      className="rounded-lg border-blue-200/50 hover:bg-blue-50/50 hover:border-blue-300/50 gap-1 px-3 sm:px-4"
                     >
                       <ChevronLeft className="h-4 w-4" />
-                      Previous
+                      <span className="hidden sm:inline">Previous</span>
                     </Button>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 sm:gap-2">
                       {Array.from(
                         { length: Math.min(5, totalPages) },
                         (_, i) => {
@@ -385,9 +389,9 @@ export function MonthlyDataCard<T>({
                               }
                               size="sm"
                               onClick={() => onPageChange(pageNum)}
-                              className={`min-w-9 h-9 rounded-lg ${
+                              className={`w-8 h-8 sm:min-w-9 sm:h-9 p-0 sm:px-3 rounded-lg text-xs sm:text-sm  ${
                                 currentPage === pageNum
-                                  ? "bg-linear-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white border-0"
+                                  ? "bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white border-0"
                                   : "border-blue-200/50 hover:bg-blue-50/50 hover:border-blue-300/50"
                               }`}
                             >
@@ -403,9 +407,9 @@ export function MonthlyDataCard<T>({
                       size="sm"
                       onClick={onNextPage}
                       disabled={currentPage === totalPages}
-                      className="rounded-lg border-blue-200/50 hover:bg-blue-50/50 hover:border-blue-300/50 gap-1"
+                      className="rounded-lg border-blue-200/50 hover:bg-blue-50/50 hover:border-blue-300/50 gap-1 px-3 sm:px-4"
                     >
-                      Next
+                      <span className="hidden sm:inline">Next</span>
                       <ChevronRight className="h-4 w-4" />
                     </Button>
                   </div>
@@ -418,7 +422,7 @@ export function MonthlyDataCard<T>({
   );
 }
 
-// ✅ FIXED: Updated DataItemRenderer to accept 'action' prop
+// Data Item Renderer with better mobile responsiveness
 export function DataItemRenderer<
   T extends {
     amount: number;
@@ -433,18 +437,17 @@ export function DataItemRenderer<
   item,
   type,
   onEdit,
-  action, // Destructure action prop
+  action, 
 }: {
   item: T;
   type: "expense" | "income";
   onEdit?: (item: T) => void;
-  action?: ReactNode; // Add type definition
+  action?: ReactNode; 
 }) {
   const dateField = type === "expense" ? "occurredAt" : "receivedAt";
   const date = new Date(item[dateField] as string | Date);
   const amount = item.amount || 0;
 
-  // Both expense and income use blue theme
   const getItemTheme = () => {
     return {
       background: "bg-linear-to-br from-blue-100 to-cyan-100",
@@ -457,53 +460,46 @@ export function DataItemRenderer<
   const theme = getItemTheme();
 
   return (
-    <div className="bg-white border border-slate-200/50 rounded-xl p-4 hover:shadow-lg hover:border-blue-200/50 transition-all duration-300 group">
+    <div className="bg-white border border-slate-200/50 rounded-xl p-3 sm:p-4 hover:shadow-lg hover:border-blue-200/50 transition-all duration-300 group">
       <div className="flex justify-between items-start">
         <div className="flex-1">
-          <div className="flex items-start gap-4">
+          <div className="flex items-start gap-3 sm:gap-4">
             {/* Amount Circle */}
             <div className="shrink-0">
               <div
-                className={`w-14 h-14 rounded-xl ${theme.background} flex items-center justify-center`}
+                className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl ${theme.background} flex items-center justify-center`}
               >
-                <span className={`font-bold text-lg ${theme.text}`}>
-                  ${amount.toFixed(2).split(".")[0]}
+                <span className={`font-bold text-base sm:text-lg ${theme.text}`}>
+                  ${amount.toFixed(0)}
                 </span>
               </div>
             </div>
 
             {/* Details */}
             <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-2 mb-2">
-                <p className="font-semibold text-slate-900 truncate">
+              <div className="flex flex-wrap items-center gap-2 mb-1.5 sm:mb-2">
+                <p className="font-semibold text-slate-900 truncate text-sm sm:text-base">
                   ${amount.toFixed(2)}
-                  <span className="text-sm font-normal text-slate-500 ml-2">
+                  <span className="text-xs sm:text-sm font-normal text-slate-500 ml-1.5">
                     {item.currency}
                   </span>
                 </p>
 
                 {item.source && type === "income" && (
-                  <Badge className={theme.badge}>{item.source}</Badge>
+                  <Badge className={theme.badge + " text-[10px] sm:text-xs"}>{item.source}</Badge>
                 )}
 
-                <Badge className="bg-linear-to-r from-slate-100 to-slate-50 text-slate-700 border-slate-200/50">
+                <Badge className="bg-gradient-to-r from-slate-100 to-slate-50 text-slate-700 border-slate-200/50 text-[10px] sm:text-xs">
                   <Calendar className="w-3 h-3 mr-1" />
                   {date.toLocaleDateString("en-US", {
                     day: "numeric",
                     weekday: "short",
                   })}
                 </Badge>
-
-                <span className="text-xs text-slate-500">
-                  {date.toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </span>
               </div>
 
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm text-slate-600">
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <span className="text-xs text-slate-600 hidden sm:inline">
                   {date.toLocaleDateString("en-US", {
                     month: "short",
                     day: "numeric",
@@ -512,15 +508,19 @@ export function DataItemRenderer<
                 </span>
 
                 {item.categoryName && (
-                  <Badge className="bg-linear-to-r from-sky-100 to-blue-100 text-sky-700 border-sky-200/50">
+                  <Badge className="bg-gradient-to-r from-sky-100 to-blue-100 text-sky-700 border-sky-200/50 text-[10px] sm:text-xs">
                     <Tag className="h-3 w-3 mr-1" />
                     {item.categoryName}
                   </Badge>
                 )}
+                
+                <span className="text-xs text-slate-400 sm:hidden">
+                  {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
               </div>
 
               {item.note && (
-                <p className="text-sm text-slate-700 p-3 bg-linear-to-r from-slate-50/50 to-white rounded-lg border border-slate-200/30">
+                <p className="text-xs sm:text-sm text-slate-700 p-2 sm:p-3 bg-gradient-to-r from-slate-50/50 to-white rounded-lg border border-slate-200/30">
                   {item.note}
                 </p>
               )}
@@ -528,8 +528,7 @@ export function DataItemRenderer<
           </div>
         </div>
 
-        {/* ✅ FIXED: Render Action or onEdit button */}
-        <div className="ml-2 flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <div className="ml-2 flex items-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300">
           {action ? (
             action
           ) : onEdit ? (
@@ -560,19 +559,19 @@ export function EmptyStateRenderer({
     type === "expense" ? "Add Your First Expense" : "Add Your First Income";
 
   return (
-    <div className="bg-linear-to-r from-slate-50/50 to-white border border-slate-200/50 rounded-2xl p-12 text-center">
-      <div className="w-20 h-20 rounded-full bg-linear-to-br from-blue-100 to-cyan-100 flex items-center justify-center mx-auto mb-6">
-        <Calendar className="w-10 h-10 text-blue-500" />
+    <div className="bg-gradient-to-r from-slate-50/50 to-white border border-slate-200/50 rounded-2xl p-6 sm:p-12 text-center">
+      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center mx-auto mb-4 sm:mb-6">
+        <Calendar className="w-8 h-8 sm:w-10 sm:h-10 text-blue-500" />
       </div>
-      <h3 className="text-lg font-semibold text-slate-700 mb-2">
+      <h3 className="text-base sm:text-lg font-semibold text-slate-700 mb-2">
         No {title} found for this month
       </h3>
-      <p className="text-slate-500 max-w-md mx-auto mb-6">
+      <p className="text-sm text-slate-500 max-w-md mx-auto mb-6">
         {isCurrentMonth
           ? `Start tracking your ${title} by adding your first transaction this month!`
           : `No ${title} were recorded for this month`}
       </p>
-      <Button className="rounded-full bg-linear-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white">
+      <Button className="w-full sm:w-auto rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white">
         {actionText}
       </Button>
     </div>

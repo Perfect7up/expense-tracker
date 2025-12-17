@@ -2,7 +2,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { AnalyticsData } from "../types/analytics";
+import { AnalyticsData } from "../../../core/types/analytics";
 
 interface UseExpenseAggregateParams {
   period?: "monthly" | "yearly";

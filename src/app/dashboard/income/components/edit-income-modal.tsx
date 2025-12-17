@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { updateIncomeSchema } from "@/app/core/schema/income";
-import { useIncomes } from "@/app/core/hooks/use-income";
+import { updateIncomeSchema } from "@/app/dashboard/income/schema/income";
+import { useIncomes } from "@/app/dashboard/income/hooks/use-income";
 import { useIncomeCategories } from "@/app/core/hooks/use-categories";
 import { GenericEditModal } from "@/app/core/components/shared/generic-edit-modal";
 import { useEditIncomeStore } from "../store/use-edit-income-store";

@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { GenericCalendarView } from "@/app/core/components/shared/generic-calendar-view";
-import { useIncomes } from "@/app/core/hooks/use-income";
+import { useIncomes } from "@/app/dashboard/income/hooks/use-income";
 
 interface IncomeCalendarViewProps {
   onDateSelect?: (date: Date | undefined) => void;

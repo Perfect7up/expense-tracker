@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { GenericCalendarView } from "@/app/core/components/shared/generic-calendar-view";
-import { useExpenses } from "@/app/core/hooks/use-expenses";
+import { useExpenses } from "../hooks/use-expenses";
 
 export function ExpenseCalendarView({
   onDateSelect,

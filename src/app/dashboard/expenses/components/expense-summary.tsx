@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { AnalyticsSummary } from "@/app/core/components/shared/analytics-summary";
-import { useExpenseSummary } from "@/app/core/hooks/use-expense-aggregate";
+import { useExpenseSummary } from "@/app/dashboard/expenses/hooks/use-expense-aggregate";
 
 export function ExpenseSummary() {
   const [periodType, setPeriodType] = useState<"month" | "year">("month");

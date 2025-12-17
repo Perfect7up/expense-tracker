@@ -1,3 +1,5 @@
+
+
 export const generateMessageId = (counter: number) =>
   `${Date.now()}-${Math.random().toString(36).substring(2, 9)}-${counter}`;
 
