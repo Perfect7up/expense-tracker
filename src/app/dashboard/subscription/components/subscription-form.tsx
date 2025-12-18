@@ -29,15 +29,14 @@ import { FormInput } from "@/app/core/components/shared/form-input";
 import { FormSelect } from "@/app/core/components/shared/form-select";
 import { handleFormError } from "@/app/core/utils/form-utils";
 
+// 1. Import the new hook
+import { useSubscriptionCategories } from "@/app/core/hooks/use-categories"; // Adjust path as needed
+
 import {
   subscriptionSchema,
-  SUBSCRIPTION_CATEGORIES,
   CYCLE_OPTIONS,
   CURRENCY_OPTIONS,
 } from "@/app/dashboard/subscription/schema/subscription";
-
-// Note: We don't import SubscriptionFormValues here to avoid generic conflicts.
-// We let Zod infer the type.
 
 interface SubscriptionFormProps {
   children?: React.ReactNode;
@@ -47,9 +46,10 @@ interface SubscriptionFormProps {
 export function SubscriptionForm({ children, onSuccess }: SubscriptionFormProps) {
   const [isOpen, setIsOpen] = useState(false);
   const queryClient = useQueryClient();
+  
+  // 2. Fetch categories from the hook
+  const { data: categories } = useSubscriptionCategories();
 
-  // 1. Remove explicit generic <SubscriptionFormValues>
-  // Let zodResolver infer the correct Input vs Output types to fix TS errors
   const form = useForm({
     resolver: zodResolver(subscriptionSchema),
     defaultValues: {
@@ -57,8 +57,8 @@ export function SubscriptionForm({ children, onSuccess }: SubscriptionFormProps)
       amount: 0,
       currency: "USD",
       cycle: "MONTHLY",
-      startDate: formatISO(new Date()).slice(0, 10), // YYYY-MM-DD
-      nextBilling: formatISO(new Date()).slice(0, 10), // YYYY-MM-DD
+      startDate: formatISO(new Date()).slice(0, 10),
+      nextBilling: formatISO(new Date()).slice(0, 10),
       isActive: true,
       autoExpense: true,
       note: "",
@@ -88,11 +88,7 @@ export function SubscriptionForm({ children, onSuccess }: SubscriptionFormProps)
         startDate: new Date(data.startDate).toISOString(),
         nextBilling: new Date(data.nextBilling).toISOString(),
         endDate: data.endDate ? new Date(data.endDate).toISOString() : null,
-        // Handle empty category select
-        category:
-          !data.category || data.category === "none"
-            ? undefined
-            : data.category,
+        category: !data.category || data.category === "none" ? undefined : data.category,
       };
       const res = await axios.post("/api/subscription", formattedData);
       return res.data;
@@ -113,9 +109,11 @@ export function SubscriptionForm({ children, onSuccess }: SubscriptionFormProps)
     createMutation.mutate(data);
   };
 
-  const categoryOptions = SUBSCRIPTION_CATEGORIES.map((cat) => ({
-    value: cat,
-    label: cat,
+  // 3. Map hook data to select options
+  // We use cat.name for both value and label to remain consistent with your previous schema
+  const categoryOptions = categories.map((cat) => ({
+    value: cat.name,
+    label: cat.name,
   }));
 
   const cycleOptions = CYCLE_OPTIONS.map((c) => ({
@@ -131,10 +129,7 @@ export function SubscriptionForm({ children, onSuccess }: SubscriptionFormProps)
   return (
     <>
       {children ? (
-        <span
-          onClick={() => setIsOpen(true)}
-          className="cursor-pointer inline-block"
-        >
+        <span onClick={() => setIsOpen(true)} className="cursor-pointer inline-block">
           {children}
         </span>
       ) : (
@@ -159,7 +154,6 @@ export function SubscriptionForm({ children, onSuccess }: SubscriptionFormProps)
         gradient="bg-linear-to-r from-blue-500 to-cyan-500"
       >
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {/* Service Name */}
           <FormInput
             label="Service Name"
             name="name"
@@ -172,7 +166,6 @@ export function SubscriptionForm({ children, onSuccess }: SubscriptionFormProps)
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Amount */}
             <FormInput
               label="Amount"
               name="amount"
@@ -182,21 +175,12 @@ export function SubscriptionForm({ children, onSuccess }: SubscriptionFormProps)
               icon={<Wallet className="w-4 h-4 text-emerald-600" />}
               iconBg="bg-linear-to-br from-green-100 to-emerald-100"
               placeholder="0.00"
-              prefix={
-                watchedCurrency === "USD"
-                  ? "$"
-                  : watchedCurrency === "EUR"
-                  ? "€"
-                  : watchedCurrency === "GBP"
-                  ? "£"
-                  : "$"
-              }
+              prefix={watchedCurrency === "EUR" ? "€" : watchedCurrency === "GBP" ? "£" : "$"}
               register={register}
               error={errors.amount?.message}
               required
             />
 
-            {/* Currency */}
             <FormSelect
               label="Currency"
               icon={<Globe className="w-4 h-4 text-indigo-600" />}
@@ -210,7 +194,6 @@ export function SubscriptionForm({ children, onSuccess }: SubscriptionFormProps)
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Billing Cycle */}
             <FormSelect
               label="Billing Cycle"
               icon={<RotateCw className="w-4 h-4 text-orange-600" />}
@@ -220,7 +203,6 @@ export function SubscriptionForm({ children, onSuccess }: SubscriptionFormProps)
               options={cycleOptions}
             />
 
-            {/* Category */}
             <FormSelect
               label="Category"
               icon={<TagIcon className="w-4 h-4 text-purple-600" />}
@@ -234,12 +216,10 @@ export function SubscriptionForm({ children, onSuccess }: SubscriptionFormProps)
             />
           </div>
 
-          {/* Dates */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormInput
               label="Start Date"
               name="startDate"
-              // Fix TS Error: casting as any to allow 'date' type in strict component
               type={"date" as any}
               icon={<Calendar className="w-4 h-4 text-pink-600" />}
               iconBg="bg-linear-to-br from-pink-100 to-rose-100"
@@ -259,7 +239,6 @@ export function SubscriptionForm({ children, onSuccess }: SubscriptionFormProps)
             />
           </div>
 
-          {/* Toggles */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex items-start space-x-3 p-3 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-100/50 transition-colors">
               <Checkbox
@@ -269,15 +248,10 @@ export function SubscriptionForm({ children, onSuccess }: SubscriptionFormProps)
                 className="mt-1 data-[state=checked]:bg-blue-500 border-slate-300"
               />
               <div className="space-y-0.5">
-                <Label
-                  htmlFor="isActive"
-                  className="text-sm font-semibold text-slate-700 cursor-pointer"
-                >
+                <Label htmlFor="isActive" className="text-sm font-semibold text-slate-700 cursor-pointer">
                   Active
                 </Label>
-                <p className="text-xs text-slate-500">
-                  Track in dashboard stats
-                </p>
+                <p className="text-xs text-slate-500">Track in dashboard stats</p>
               </div>
             </div>
 
@@ -285,26 +259,18 @@ export function SubscriptionForm({ children, onSuccess }: SubscriptionFormProps)
               <Checkbox
                 id="autoExpense"
                 checked={watchedAutoExpense}
-                onCheckedChange={(val) =>
-                  setValue("autoExpense", val as boolean)
-                }
+                onCheckedChange={(val) => setValue("autoExpense", val as boolean)}
                 className="mt-1 data-[state=checked]:bg-blue-500 border-slate-300"
               />
               <div className="space-y-0.5">
-                <Label
-                  htmlFor="autoExpense"
-                  className="text-sm font-semibold text-slate-700 cursor-pointer"
-                >
+                <Label htmlFor="autoExpense" className="text-sm font-semibold text-slate-700 cursor-pointer">
                   Auto-Expense
                 </Label>
-                <p className="text-xs text-slate-500">
-                  Add expense on billing date
-                </p>
+                <p className="text-xs text-slate-500">Add expense on billing date</p>
               </div>
             </div>
           </div>
 
-          {/* Note */}
           <FormInput
             label="Notes"
             name="note"

@@ -1,5 +1,4 @@
-
-export type CategoryType = "EXPENSE" | "INCOME" | "INVESTMENT";
+export type CategoryType = "EXPENSE" | "INCOME" | "INVESTMENT" | "SUBSCRIPTION";
 
 export interface Category {
   id: string;
@@ -23,10 +22,34 @@ export const DEFAULT_INCOME_CATEGORIES = [
   "Refund", "Other Income",
 ];
 
-// NEW: Default Investment Categories
 export const DEFAULT_INVESTMENT_CATEGORIES = [
   "Stocks", "Crypto", "Real Estate", "Gold & Metals", "Mutual Funds",
   "ETFs", "Bonds", "Startup Equity", "Forex", "Collectibles", "Other Assets"
+];
+
+// 2. Add Default Subscription Categories
+export const DEFAULT_SUBSCRIPTION_CATEGORIES = [
+  "Streaming Services",
+  "Music Streaming",
+  "Cloud Storage",
+  "Software/SaaS",
+  "Gym/Fitness",
+  "News/Media",
+  "Learning/Education",
+  "Productivity Tools",
+  "Food/Meal Kits",
+  "Gaming",
+  "Dating Apps",
+  "Membership Clubs",
+  "Beauty/Personal Care",
+  "Health/Wellness",
+  "Financial Services",
+  "E-commerce",
+  "Telecom/Mobile",
+  "Internet",
+  "Utilities",
+  "Insurance",
+  "Other"
 ];
 
 /**
@@ -71,10 +94,21 @@ const getStaticCategories = (targetType?: CategoryType): Category[] => {
     })));
   }
 
+  // 3. Generate Subscription Categories
+  if (!targetType || targetType === "SUBSCRIPTION") {
+    categories.push(...DEFAULT_SUBSCRIPTION_CATEGORIES.map((name, index) => ({
+      id: `subscription-${index}`,
+      name,
+      type: "SUBSCRIPTION" as CategoryType,
+      userId: "system",
+      createdAt: new Date("2024-01-01"),
+      updatedAt: new Date("2024-01-01"),
+    })));
+  }
+
   return categories;
 };
 
-// Main Hook
 export const useCategories = (
   type?: CategoryType,
   includeCounts: boolean = false
@@ -91,3 +125,5 @@ export const useCategories = (
 export const useExpenseCategories = () => useCategories("EXPENSE");
 export const useIncomeCategories = () => useCategories("INCOME");
 export const useInvestmentCategories = () => useCategories("INVESTMENT");
+// 4. Export new hook
+export const useSubscriptionCategories = () => useCategories("SUBSCRIPTION");

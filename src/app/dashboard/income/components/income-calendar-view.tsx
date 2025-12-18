@@ -17,12 +17,9 @@ export function IncomeCalendarView({
   setDailyIncomes,
   setSelectedDate,
 }: IncomeCalendarViewProps) {
-  // ✅ FIX: Destructure 'incomes' and 'isLoading' directly from the hook
-  // (The hook does not export 'incomesQuery')
   const { incomes, isLoading } = useIncomes();
 
   const calendarData = useMemo(() => {
-    // ✅ FIX: Use 'incomes' directly
     if (!incomes || !Array.isArray(incomes)) return [];
 
     return incomes.map((income: any) => ({
@@ -30,7 +27,7 @@ export function IncomeCalendarView({
       amount: income.amount,
       ...income,
     }));
-  }, [incomes]); // ✅ FIX: Dependency is 'incomes'
+  }, [incomes]);
 
   return (
     <GenericCalendarView

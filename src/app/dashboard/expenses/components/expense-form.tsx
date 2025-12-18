@@ -34,12 +34,10 @@ export function ExpenseForm({ children, onSuccess }: ExpenseFormProps) {
   const { data: categories = [] } = useExpenseCategories();
   const [isOpen, setIsOpen] = useState(false);
 
-  // REMOVE the explicit generic <ExpenseFormType> here.
-  // Let zodResolver infer the correct Input/Output types to fix the TS errors.
   const form = useForm({
     resolver: zodResolver(expenseSchema),
     defaultValues: {
-      amount: 0, // Initial value as number is fine, user input becomes string
+      amount: 0,
       currency: "USD",
       note: "",
       categoryId: "",
@@ -63,8 +61,6 @@ export function ExpenseForm({ children, onSuccess }: ExpenseFormProps) {
 
   const onSubmit = async (data: ExpenseFormType) => {
     try {
-      // data.amount is ALREADY a number here due to z.coerce in the schema
-
       const payload = {
         amount: data.amount,
         currency: data.currency || "USD",

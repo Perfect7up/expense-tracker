@@ -13,7 +13,8 @@ import {
   ArrowRight,
   Loader2,
   ArrowLeftRight,
-  DollarSign
+  DollarSign,
+  Globe
 } from "lucide-react";
 
 import { Button } from "@/app/core/components/ui/button";
@@ -21,22 +22,14 @@ import { FormModal } from "@/app/core/components/shared/form-modal";
 import { FormInput } from "@/app/core/components/shared/form-input";
 import { FormSelect } from "@/app/core/components/shared/form-select";
 
+import { useInvestmentCategories } from "@/app/core/hooks/use-categories";
+import { CURRENCY_OPTIONS, formatCurrencySymbol } from "@/app/core/utils/form-utils";
 import { investmentFormSchema, InvestmentFormValues } from "@/app/dashboard/investment/schema/investments";
 import { Investment } from "@/app/dashboard/investment/types/investments";
 
 const INVESTMENT_TYPES = [
   { value: "buy", label: "Buy (Long)" },
   { value: "sell", label: "Sell (Short)" },
-];
-
-const INVESTMENT_CATEGORIES = [
-  { value: "stocks", label: "Stocks" },
-  { value: "crypto", label: "Crypto" },
-  { value: "etf", label: "ETF" },
-  { value: "bonds", label: "Bonds" },
-  { value: "real_estate", label: "Real Estate" },
-  { value: "gold", label: "Gold / Commodities" },
-  { value: "cash", label: "Cash / Savings" },
 ];
 
 interface Props {
@@ -52,7 +45,8 @@ export function InvestmentModal({
   onSubmit,
   investment,
 }: Props) {
-  
+  const { data: categories } = useInvestmentCategories();
+
   const form = useForm({
     resolver: zodResolver(investmentFormSchema),
     defaultValues: {
@@ -62,7 +56,8 @@ export function InvestmentModal({
       averageBuyPrice: 0,
       currentPrice: 0,
       categoryId: "none",
-      type: "buy", // Default value matching the "buy" | "sell" type
+      type: "buy",
+      currency: "USD",
     },
   });
 
@@ -77,6 +72,7 @@ export function InvestmentModal({
 
   const watchedCategory = useWatch({ control, name: "categoryId" });
   const watchedType = useWatch({ control, name: "type" });
+  const watchedCurrency = useWatch({ control, name: "currency" });
 
   useEffect(() => {
     if (investment) {
@@ -87,8 +83,8 @@ export function InvestmentModal({
         averageBuyPrice: investment.averageBuyPrice,
         currentPrice: investment.currentPrice ?? 0,
         categoryId: investment.categoryId ?? "none",
-        // @ts-ignore - Safely handle if 'type' doesn't exist on old Investment objects yet
-        type: investment.type ?? "buy", 
+        type: (investment.type as "buy" | "sell") ?? "buy", 
+        currency: (investment as any).currency ?? "USD",
       });
     } else {
       reset({
@@ -99,9 +95,21 @@ export function InvestmentModal({
         currentPrice: 0,
         categoryId: "none",
         type: "buy",
+        currency: "USD",
       });
     }
   }, [investment, open, reset]);
+
+  // 2. Map hook data and utils to options
+  const categoryOptions = categories.map((cat) => ({
+    value: cat.name,
+    label: cat.name,
+  }));
+
+  const currencyOptions = CURRENCY_OPTIONS.map((c) => ({
+    value: c.value,
+    label: `${c.value} ${c.label}`,
+  }));
 
   return (
     <FormModal
@@ -110,12 +118,10 @@ export function InvestmentModal({
       title={investment ? "Edit Asset" : "New Asset"}
       subtitle="Track your portfolio performance"
       icon={<TrendingUp className="w-6 h-6 text-white" />}
-      // THEME: Blue/Cyan gradient matching Subscription form
       gradient="bg-linear-to-r from-blue-500 to-cyan-500"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         
-        {/* Row 1: Name */}
         <FormInput
           label="Asset Name"
           name="name"
@@ -127,34 +133,28 @@ export function InvestmentModal({
           required
         />
 
-        {/* Row 2: Type & Category */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-           {/* Investment Type (Buy/Sell) */}
            <FormSelect
             label="Type"
             icon={<ArrowLeftRight className="w-4 h-4 text-indigo-600" />}
             iconBg="bg-linear-to-br from-indigo-100 to-violet-100"
             value={watchedType}
-            // FIX: Cast 'val' to the specific union type required by your schema
             onValueChange={(val) => setValue("type", val as "buy" | "sell")}
             options={INVESTMENT_TYPES}
-            type="category"
             showNoCategory={false}
           />
 
-          {/* Category */}
           <FormSelect
             label="Category"
             icon={<TagIcon className="w-4 h-4 text-purple-600" />}
             iconBg="bg-linear-to-br from-purple-100 to-pink-100"
-            value={watchedCategory}
+            value={watchedCategory || "none"}
             onValueChange={(val) => setValue("categoryId", val)}
-            options={INVESTMENT_CATEGORIES}
+            options={categoryOptions}
             type="category"
           />
         </div>
 
-        {/* Row 3: Symbol & Quantity */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormInput
             label="Symbol / Ticker"
@@ -166,6 +166,18 @@ export function InvestmentModal({
             error={errors.symbol?.message as string}
           />
 
+          <FormSelect
+            label="Currency"
+            icon={<Globe className="w-4 h-4 text-slate-600" />}
+            iconBg="bg-linear-to-br from-slate-100 to-gray-100"
+            value={watchedCurrency}
+            onValueChange={(val) => setValue("currency", val)}
+            options={currencyOptions}
+            showNoCategory={false}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormInput
             label="Quantity"
             name="quantity"
@@ -179,10 +191,7 @@ export function InvestmentModal({
             error={errors.quantity?.message as string}
             required
           />
-        </div>
 
-        {/* Row 4: Prices */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormInput
             label="Avg. Buy Price"
             name="averageBuyPrice"
@@ -192,12 +201,14 @@ export function InvestmentModal({
             icon={<DollarSign className="w-4 h-4 text-emerald-600" />}
             iconBg="bg-linear-to-br from-emerald-100 to-green-100"
             placeholder="0.00"
-            prefix="$"
+            prefix={formatCurrencySymbol(watchedCurrency)}
             register={register}
             error={errors.averageBuyPrice?.message as string}
             required
           />
+        </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormInput
             label="Current Price"
             name="currentPrice"
@@ -207,13 +218,14 @@ export function InvestmentModal({
             icon={<Coins className="w-4 h-4 text-yellow-600" />}
             iconBg="bg-linear-to-br from-yellow-100 to-amber-100"
             placeholder="0.00"
-            prefix="$"
+            prefix={formatCurrencySymbol(watchedCurrency)}
             register={register}
             error={errors.currentPrice?.message as string}
           />
+
+          <div className="hidden md:block" /> {/* Spacer */}
         </div>
 
-        {/* Submit Button - THEME: Blue/Cyan */}
         <div className="pt-4">
           <Button
             type="submit"

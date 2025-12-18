@@ -38,7 +38,7 @@ export function CashflowAnalysis({ data }: CashflowAnalysisProps) {
   const trendPositive = trend >= 0;
 
   return (
-    <Card className="relative overflow-hidden bg-white/80 backdrop-blur-sm border border-slate-200/50 shadow-xl rounded-2xl group hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 w-full">
+    <Card className="relative overflow-hidden bg-white/80 backdrop-blur-sm border border-slate-200/50 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 w-full">
       {/* Background linear accents */}
       <div className="absolute -top-24 -right-24 w-48 h-48 bg-blue-100/20 rounded-full blur-3xl group-hover:bg-blue-100/30 transition-all duration-500" />
       <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-cyan-100/20 rounded-full blur-3xl group-hover:bg-cyan-100/30 transition-all duration-500" />

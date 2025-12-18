@@ -9,7 +9,8 @@ import { GenericEditModal } from "@/app/core/components/shared/generic-edit-moda
 import { SubscriptionForm } from "./components/subscription-form";
 import { SubscriptionList } from "./components/subscription-list";
 import { useSubscription } from "@/app/dashboard/subscription/hooks/use-subscription";
-import { subscriptionSchema, SUBSCRIPTION_CATEGORIES } from "@/app/dashboard/subscription/schema/subscription";
+import { subscriptionSchema } from "@/app/dashboard/subscription/schema/subscription";
+import { DEFAULT_SUBSCRIPTION_CATEGORIES } from "@/app/core/hooks/use-categories";
 
 const CYCLE_OPTIONS = [
   { value: "DAILY", label: "Daily" },
@@ -40,7 +41,6 @@ export default function SubscriptionsPage() {
   const openDeleteConfirm = () => setIsDeleteConfirmOpen(true);
   const closeDeleteConfirm = () => setIsDeleteConfirmOpen(false);
 
-  // Calculate inactive count manually since it's not in the hook stats
   const totalSubs = stats?.allSubscriptions?.length || 0;
   const activeSubs = stats?.activeCount || 0;
   const inactiveCount = totalSubs - activeSubs;
@@ -53,7 +53,6 @@ export default function SubscriptionsPage() {
       icon: "checkCircle" as const,
       iconBg: "bg-linear-to-br from-blue-500 to-cyan-400",
       loading: isLoading,
-      // No prefix
     },
     {
       title: "Inactive Subscriptions",
@@ -184,7 +183,7 @@ export default function SubscriptionsPage() {
                 ]
               }
             ]}
-            categories={SUBSCRIPTION_CATEGORIES.map(c => ({ id: c, name: c }))}
+            categories={DEFAULT_SUBSCRIPTION_CATEGORIES.map(c => ({ id: c, name: c }))}
             getItemId={(item) => item.id}
             getItemAmount={(item) => item.amount}
             getItemNote={(item) => item.note || ""}

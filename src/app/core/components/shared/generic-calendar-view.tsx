@@ -40,24 +40,20 @@ interface CalendarDataItem {
 }
 
 interface CalendarViewProps {
-  // Data
   data?: CalendarDataItem[];
   isLoading?: boolean;
 
-  // Configuration
   title: string;
   description: string;
   colorScheme?: "shared" | "default";
   showMonthlyButton?: boolean;
   showAverage?: boolean;
 
-  // Callbacks
   onDateSelect?: (date: Date | undefined) => void;
   onShowMonthly?: () => void;
   setDailyData?: (data: any[]) => void;
   setSelectedDate?: (date: Date | undefined) => void;
 
-  // Customization
   formatAmount?: (amount: number) => string;
   getItemDate?: (item: any) => Date;
   getItemAmount?: (item: any) => number;
@@ -214,7 +210,6 @@ export function GenericCalendarView({
     );
   };
 
-  // Custom calendar component
   const renderCalendar = () => {
     const start = startOfMonth(currentMonth);
     const end = endOfMonth(currentMonth);
@@ -237,14 +232,11 @@ export function GenericCalendarView({
           ))}
         </div>
 
-        {/* Calendar days */}
         <div className="grid grid-cols-7 gap-1 sm:gap-2">
-          {/* Empty cells for days before the 1st */}
           {Array.from({ length: firstDayOfWeek }).map((_, i) => (
             <div key={`empty-${i}`} className="aspect-square sm:h-12" />
           ))}
 
-          {/* Days of the month */}
           {days.map((date) => {
             const isToday = isSameDay(date, new Date());
             const isSelected =

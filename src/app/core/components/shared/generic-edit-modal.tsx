@@ -61,7 +61,6 @@ interface Subscription {
   autoExpense: boolean;
 }
 
-// Helper type for category options to support both {id, name} and {value, label}
 type CategoryOption = { id: string; name: string } | { value: string; label: string };
 
 interface EditModalProps<T> {
@@ -76,7 +75,6 @@ interface EditModalProps<T> {
   updateItem: (params: { id: string; data: any }) => Promise<any>;
   deleteItem: (id: string) => Promise<any>;
   
-  // Updated to accept both formats
   categories?: CategoryOption[];
   subscriptions?: Subscription[];
 
@@ -90,7 +88,6 @@ interface EditModalProps<T> {
   schema: any;
   defaultValues: any;
 
-  // Visual Customization
   modalGradient?: string;
   modalIcon?: React.ReactNode;
   deleteConfirmMessage?: string;
@@ -124,14 +121,12 @@ interface EditModalProps<T> {
     placeholder?: string;
     icon?: React.ReactNode;
     options?: Array<{ value: string; label: string }>;
-    // Added properties to fix TypeScript errors
     step?: string;
     min?: string;
     required?: boolean;
     prefix?: string;
   }>;
 
-  // Custom renderer for things like live investment summaries
   renderAdditionalInfo?: (item: T, watch: UseFormWatch<any>) => React.ReactNode;
 
   formatAmount?: (amount: number) => string;
@@ -242,7 +237,6 @@ export function GenericEditModal<T>({
       note: getItemNote(selectedItem),
       categoryId: getItemCategory(selectedItem) || "none",
       subscriptionId: getItemSubscription(selectedItem) || "none",
-      // Handle cases where item might not have the date field (e.g. investments)
       [dateField.fieldName]: (selectedItem as any)[dateField.fieldName] || (selectedItem as any).date || (selectedItem as any).createdAt
         ? new Date((selectedItem as any)[dateField.fieldName] || (selectedItem as any).date || (selectedItem as any).createdAt).toISOString().slice(0, 16)
         : undefined, 

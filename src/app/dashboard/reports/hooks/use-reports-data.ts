@@ -17,6 +17,8 @@ export interface CashflowData {
   totalIncome: number;
   totalExpense: number;
   net: number;
+  trend?: number;
+  previousPeriodNet?: number;
 }
 
 export interface CategoryData {
@@ -70,10 +72,13 @@ export const useReportsData = () => {
   return {
     overview: overviewQuery.data,
     cashflow: cashflowQuery.data,
-    categoryBreakdown: categoriesQuery.data || [],
-    investments: investmentsQuery.data || [],
-    isLoading: overviewQuery.isLoading || cashflowQuery.isLoading || 
-               categoriesQuery.isLoading || investmentsQuery.isLoading,
+    categoryBreakdown: categoriesQuery.data || [], // FIXED: Added this
+    investments: investmentsQuery.data || [],     // FIXED: Added this
+    isLoading: 
+      overviewQuery.isLoading || 
+      cashflowQuery.isLoading || 
+      categoriesQuery.isLoading || 
+      investmentsQuery.isLoading,
     refetch: () => {
       overviewQuery.refetch();
       cashflowQuery.refetch();
@@ -83,50 +88,34 @@ export const useReportsData = () => {
   };
 };
 
+// FIXED: Ensure this is explicitly exported
 export const useExportReports = () => {
   const [isExporting, setIsExporting] = useState(false);
 
   const handleExportAll = async (exportFormat: 'csv' | 'json') => {
     setIsExporting(true);
     try {
-      await handleExport('expenses', exportFormat);
-      await new Promise(resolve => setTimeout(resolve, 500));
-      await handleExport('incomes', exportFormat);
+      const params = new URLSearchParams({ format: exportFormat });
+      const res = await fetch(`/api/reports/download?${params}`);
+      
+      if (!res.ok) throw new Error('Export failed');
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `financial-report.${exportFormat}`;
+      document.body.appendChild(a);
+      a.click();
+      
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
     } catch (error) {
       console.error('Error exporting data:', error);
-      throw error;
     } finally {
       setIsExporting(false);
     }
   };
 
-  const handleExport = async (type: string, exportFormat: 'csv' | 'json') => {
-    const params = new URLSearchParams({ type, format: exportFormat });
-    const res = await fetch(`/api/reports/download?${params}`);
-    
-    if (!res.ok) {
-      throw new Error('Export failed');
-    }
-
-    if (exportFormat === 'csv') {
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${type}-report.csv`;
-      a.click();
-      window.URL.revokeObjectURL(url);
-    } else {
-      const data = await res.json();
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${type}-report.json`;
-      a.click();
-      window.URL.revokeObjectURL(url);
-    }
-  };
-
-  return { handleExportAll, handleExport, isExporting };
+  return { handleExportAll, isExporting };
 };

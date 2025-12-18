@@ -8,7 +8,6 @@ import {
   PieChart,
   BarChart3,
   Calendar,
-  Filter,
   RefreshCw,
   Sparkles,
   Zap,
@@ -36,6 +35,8 @@ import Loading from "@/app/core/components/shared/loading";
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [timeFilter, setTimeFilter] = useState("month");
+  
+  // Custom hooks for data fetching and the unified export logic
   const { overview, cashflow, categoryBreakdown, investments, isLoading, refetch } = useReportsData();
   const { handleExportAll, isExporting } = useExportReports();
 
@@ -75,10 +76,10 @@ export default function ReportsPage() {
   ];
 
   const instructions = [
-    "Export reports in CSV or JSON format",
+    "Export a combined report (Incomes & Expenses) in CSV",
     "View detailed breakdowns by category",
-    "Track investment performance",
-    "Monitor cash flow over time",
+    "Track investment performance & profit/loss",
+    "Monitor cash flow trends over time",
   ];
 
   if (isLoading) {
@@ -113,19 +114,21 @@ export default function ReportsPage() {
             >
               <RefreshCw className="h-4 w-4 sm:h-5 sm:w-5" />
             </Button>
+            
+            {/* Unified Export Button - Now triggers ONE file download */}
             <Button
               onClick={() => handleExportAll('csv')}
               disabled={isExporting}
               className="flex-1 sm:flex-none rounded-full bg-linear-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-4 sm:px-6 h-10 sm:h-12 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-300 group text-sm sm:text-base"
             >
               <Download className="mr-2 h-4 w-4 group-hover:scale-110 transition-transform" />
-              {isExporting ? "Exporting..." : "Export CSV"}
+              {isExporting ? "Processing..." : "Export Full Report"}
               <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
             </Button>
           </div>
         </PageHeader>
 
-        {/* Time Filter - Horizontal Scroll on Mobile */}
+        {/* Time Filter */}
         <div className="flex overflow-x-auto pb-2 sm:pb-0 gap-2 mb-6 sm:mb-8 px-2 sm:px-0 no-scrollbar">
           {timeFilters.map((filter) => (
             <button
@@ -148,10 +151,9 @@ export default function ReportsPage() {
           <OverviewStats data={overview || undefined} />
         </div>
 
-        {/* Enhanced Tabs Container */}
+        {/* Tabs Container */}
         <div className="bg-white/80 backdrop-blur-sm rounded-xl md:rounded-2xl p-2 sm:p-4 md:p-6 border border-slate-200/50 shadow-lg mb-6 sm:mb-8 mx-2 sm:mx-0">
           
-          {/* Tab Navigation - Responsive Grid */}
           <div className="grid grid-cols-4 gap-2 sm:gap-3 mb-6">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.value;
@@ -171,15 +173,12 @@ export default function ReportsPage() {
                 >
                   <div className={cn(
                     "p-1.5 rounded-lg shrink-0",
-                    isActive
-                      ? "bg-white/20"
-                      : "bg-linear-to-br from-blue-50 to-cyan-50"
+                    isActive ? "bg-white/20" : "bg-linear-to-br from-blue-50 to-cyan-50"
                   )}>
-                    <div className="[&>svg]:w-4 [&>svg]:h-4 sm:[&>svg]:w-4 sm:[&>svg]:h-4">
+                    <div className="[&>svg]:w-4 [&>svg]:h-4">
                       {tab.icon}
                     </div>
                   </div>
-                  {/* Text: truncated on mobile, full on desktop if needed */}
                   <span className="font-medium text-[10px] sm:text-sm truncate w-full text-center sm:text-left">
                     <span className="sm:hidden">{oneWordLabel}</span>
                     <span className="hidden sm:inline">{tab.label}</span>
@@ -188,15 +187,11 @@ export default function ReportsPage() {
                   {isActive && (
                     <ChevronRight className="w-4 h-4 ml-auto hidden sm:block group-hover:translate-x-1 transition-transform" />
                   )}
-                  {isActive && (
-                      <div className="absolute bottom-0 left-2 right-2 sm:hidden h-0.5 bg-white/50 rounded-full" />
-                  )}
                 </button>
               );
             })}
           </div>
 
-          {/* Tab Content Area */}
           <div className="space-y-4 sm:space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 mb-2 sm:mb-6">
               <div>
@@ -204,10 +199,10 @@ export default function ReportsPage() {
                   {tabs.find(t => t.value === activeTab)?.label || "Reports"}
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                  {activeTab === "overview" && "Complete financial overview and insights"}
-                  {activeTab === "cashflow" && "Income, expenses, and net flow analysis"}
-                  {activeTab === "categories" && "Spending distribution across categories"}
-                  {activeTab === "investments" && "Portfolio performance and growth"}
+                  {activeTab === "overview" && "Complete financial health and AI insights"}
+                  {activeTab === "cashflow" && "Detailed income and expense movement"}
+                  {activeTab === "categories" && "Spending distribution and trends"}
+                  {activeTab === "investments" && "Asset allocation and performance"}
                 </p>
               </div>
               <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-500">
@@ -216,27 +211,26 @@ export default function ReportsPage() {
               </div>
             </div>
 
-            {/* Tab Content */}
             <div className="space-y-6">
               {activeTab === "overview" && (
                 <div className="space-y-6">
-                  {/* Financial Health & AI Recommendations - Stack on Mobile */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                    {/* Financial Health */}
                     <div className="bg-linear-to-br from-blue-50 to-cyan-50/50 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-blue-100/50">
                       <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-linear-to-br from-emerald-400 to-green-500 flex items-center justify-center">
-                          <Target className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                        <div className="w-10 h-10 rounded-xl bg-linear-to-br from-emerald-400 to-green-500 flex items-center justify-center">
+                          <Target className="w-5 h-5 text-white" />
                         </div>
                         <div>
                           <h3 className="font-bold text-slate-900 text-sm sm:text-base">Financial Health</h3>
-                          <p className="text-xs sm:text-sm text-slate-500">Cash Flow Status</p>
+                          <p className="text-xs sm:text-sm text-slate-500">Combined Status</p>
                         </div>
                       </div>
                       <div className="space-y-3 sm:space-y-4">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs sm:text-sm text-slate-600">Status</span>
+                          <span className="text-xs sm:text-sm text-slate-600">Balance Status</span>
                           <span className={`font-bold text-xs sm:text-sm ${isPositiveCashFlow ? 'text-emerald-600' : 'text-red-600'}`}>
-                            {isPositiveCashFlow ? "✓ Healthy" : "⚠ Needs Attention"}
+                            {isPositiveCashFlow ? "✓ Healthy" : "⚠ Review Balance"}
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
@@ -245,21 +239,22 @@ export default function ReportsPage() {
                         </div>
                         {incomeExpenseRatio && (
                           <div className="flex items-center justify-between">
-                            <span className="text-xs sm:text-sm text-slate-600">Income/Expense Ratio</span>
+                            <span className="text-xs sm:text-sm text-slate-600">Burn Rate (Ratio)</span>
                             <span className="font-bold text-xs sm:text-sm text-slate-900">1:{incomeExpenseRatio}</span>
                           </div>
                         )}
                       </div>
                     </div>
 
+                    {/* AI Recommendations */}
                     <div className="bg-linear-to-br from-purple-50 to-pink-50/50 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-purple-100/50">
                       <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-linear-to-br from-purple-400 to-pink-500 flex items-center justify-center">
-                          <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                        <div className="w-10 h-10 rounded-xl bg-linear-to-br from-purple-400 to-pink-500 flex items-center justify-center">
+                          <Sparkles className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                          <h3 className="font-bold text-slate-900 text-sm sm:text-base">AI Recommendations</h3>
-                          <p className="text-xs sm:text-sm text-slate-500">Personalized Insights</p>
+                          <h3 className="font-bold text-slate-900 text-sm sm:text-base">AI Insights</h3>
+                          <p className="text-xs sm:text-sm text-slate-500">Actionable Advice</p>
                         </div>
                       </div>
                       <div className="space-y-3">
@@ -267,16 +262,14 @@ export default function ReportsPage() {
                           <CheckCircle className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
                           <p className="text-xs sm:text-sm text-slate-600">
                             {isPositiveCashFlow
-                              ? "Your savings rate is excellent. Consider increasing investments."
-                              : "Review recurring expenses for potential savings."}
+                              ? "Excellent discipline. Your income exceeds expenses."
+                              : "Notice: Expenses are higher than usual this period."}
                           </p>
                         </div>
                         <div className="flex items-start gap-2">
                           <CheckCircle className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
                           <p className="text-xs sm:text-sm text-slate-600">
-                            {overview?.activeSubscriptions && overview.activeSubscriptions > 5
-                              ? "Consider reviewing your 6+ active subscriptions"
-                              : "Subscription count is well-managed"}
+                            The new combined report is now ready for export below.
                           </p>
                         </div>
                       </div>
@@ -286,115 +279,81 @@ export default function ReportsPage() {
                   {/* Quick Stats Grid */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                     <div className="bg-white/50 rounded-xl p-3 sm:p-4 border border-slate-200/50">
-                      <p className="text-[10px] sm:text-xs text-slate-500 mb-1">Report Period</p>
+                      <p className="text-[10px] sm:text-xs text-slate-500 mb-1">Period</p>
                       <p className="font-bold text-sm sm:text-base text-slate-900">
                         {timeFilters.find(f => f.value === timeFilter)?.label}
                       </p>
                     </div>
                     <div className="bg-white/50 rounded-xl p-3 sm:p-4 border border-slate-200/50">
-                      <p className="text-[10px] sm:text-xs text-slate-500 mb-1">Data Points</p>
+                      <p className="text-[10px] sm:text-xs text-slate-500 mb-1">Categories</p>
                       <p className="font-bold text-sm sm:text-base text-slate-900">
                         {categoryBreakdown?.length || 0}
                       </p>
                     </div>
                     <div className="bg-white/50 rounded-xl p-3 sm:p-4 border border-slate-200/50">
-                      <p className="text-[10px] sm:text-xs text-slate-500 mb-1">Export Ready</p>
-                      <p className="font-bold text-sm sm:text-base text-slate-900">Yes</p>
+                      <p className="text-[10px] sm:text-xs text-slate-500 mb-1">Export Format</p>
+                      <p className="font-bold text-sm sm:text-base text-slate-900">CSV/JSON</p>
                     </div>
                     <div className="bg-white/50 rounded-xl p-3 sm:p-4 border border-slate-200/50">
-                      <p className="text-[10px] sm:text-xs text-slate-500 mb-1">Next Update</p>
-                      <p className="font-bold text-sm sm:text-base text-slate-900">24h</p>
+                      <p className="text-[10px] sm:text-xs text-slate-500 mb-1">Data Source</p>
+                      <p className="font-bold text-sm sm:text-base text-slate-900">Sync Active</p>
                     </div>
                   </div>
                 </div>
               )}
 
-              {activeTab === "cashflow" && (
-                <div className="overflow-x-auto">
-                   <CashflowAnalysis data={cashflow} />
-                </div>
-              )}
-
-              {activeTab === "categories" && (
-                 <div className="overflow-x-auto">
-                   <CategoryBreakdown data={categoryBreakdown} />
-                 </div>
-              )}
-
-              {activeTab === "investments" && (
-                <div className="overflow-x-auto">
-                   <InvestmentPortfolio data={investments} overview={overview} />
-                </div>
-              )}
+              {activeTab === "cashflow" && <CashflowAnalysis data={cashflow} />}
+              {activeTab === "categories" && <CategoryBreakdown data={categoryBreakdown} />}
+              {activeTab === "investments" && <InvestmentPortfolio data={investments} overview={overview} />}
             </div>
           </div>
         </div>
 
-        {/* Footer and Quick Tips */}
+        {/* Footer */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8 mx-2 sm:mx-0">
-          {/* Quick Tips */}
           <div className="bg-linear-to-br from-blue-50/50 to-cyan-50/30 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-blue-100/50">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-linear-to-br from-purple-500 to-pink-400 flex items-center justify-center">
-                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              <div className="w-8 h-8 rounded-xl bg-linear-to-br from-purple-500 to-pink-400 flex items-center justify-center">
+                <Sparkles className="w-4 h-4 text-white" />
               </div>
-              <h3 className="text-base sm:text-lg font-bold text-slate-900">Quick Tips</h3>
+              <h3 className="text-base sm:text-lg font-bold text-slate-900">Report Features</h3>
             </div>
             <div className="space-y-3 sm:space-y-4">
               {instructions.map((instruction, index) => (
                 <div key={index} className="flex items-start gap-3">
-                  <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-linear-to-br from-blue-400 to-cyan-500 flex items-center justify-center shrink-0 mt-0.5">
-                    {index === 0 && <Download className="w-3 h-3 sm:w-4 sm:h-4 text-white" />}
-                    {index === 1 && <PieChart className="w-3 h-3 sm:w-4 sm:h-4 text-white" />}
-                    {index === 2 && <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-white" />}
-                    {index === 3 && <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4 text-white" />}
+                  <div className="w-6 h-6 rounded-lg bg-linear-to-br from-blue-400 to-cyan-500 flex items-center justify-center shrink-0 mt-0.5">
+                    {index === 0 && <Download className="w-3 h-3 text-white" />}
+                    {index === 1 && <PieChart className="w-3 h-3 text-white" />}
+                    {index === 2 && <TrendingUp className="w-3 h-3 text-white" />}
+                    {index === 3 && <BarChart3 className="w-3 h-3 text-white" />}
                   </div>
                   <p className="text-xs sm:text-sm text-slate-600">{instruction}</p>
                 </div>
               ))}
             </div>
-            <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-blue-100/50">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-linear-to-br from-emerald-400 to-green-500 flex items-center justify-center">
-                  <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                </div>
-                <div>
-                  <p className="font-medium text-sm sm:text-base text-slate-900">AI Insights</p>
-                  <p className="text-[10px] sm:text-xs text-slate-500">Updated just now</p>
-                </div>
-              </div>
-            </div>
           </div>
 
-          {/* Footer Note */}
           <div className="flex flex-col justify-between bg-white/50 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-200/50">
             <div>
-              <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-2">Reports Management</h3>
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-2">Reports Storage</h3>
               <p className="text-xs sm:text-sm text-slate-600 mb-4">
-                Your financial reports are automatically generated and updated daily.
+                Internal IDs are automatically stripped from your CSV for cleaner spreadsheet viewing.
               </p>
             </div>
             <div className="space-y-4">
               <div className="flex items-center justify-between text-xs sm:text-sm text-slate-500">
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4" />
-                  <span>Auto-refresh every 24 hours</span>
+                  <span>Real-time CSV generation</span>
                 </div>
               </div>
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-0">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-full text-xs sm:text-sm"
-                >
-                  Report an issue
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 text-xs">
+                  Download JSON instead
                 </Button>
-                <Button
-                  size="sm"
-                  className="rounded-full bg-linear-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-4 text-xs sm:text-sm h-9 sm:h-10"
-                >
-                  View All Reports
-                  <ArrowRight className="ml-2 w-3 h-3 sm:w-4 sm:h-4" />
+                <Button size="sm" className="rounded-full bg-linear-to-r from-blue-500 to-cyan-500 text-white px-4 h-10">
+                  Global Dashboard
+                  <ArrowRight className="ml-2 w-4 h-4" />
                 </Button>
               </div>
             </div>

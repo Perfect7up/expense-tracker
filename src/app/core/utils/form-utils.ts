@@ -29,7 +29,6 @@ export const getDefaultDate = () => {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
-// Common form reset values
 export const resetExpenseForm = {
   amount: 0,
   currency: "USD",

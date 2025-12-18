@@ -1,4 +1,3 @@
-// app/core/schemas/subscription.ts
 import { z } from "zod";
 import { formatISO } from "date-fns";
 
@@ -18,38 +17,11 @@ export const subscriptionSchema = z.object({
 
 export type SubscriptionFormValues = z.infer<typeof subscriptionSchema>;
 
-// Subscription-specific categories
-export const SUBSCRIPTION_CATEGORIES = [
-  "Streaming Services",
-  "Music Streaming",
-  "Cloud Storage",
-  "Software/SaaS",
-  "Gym/Fitness",
-  "News/Media",
-  "Learning/Education",
-  "Productivity Tools",
-  "Food/Meal Kits",
-  "Gaming",
-  "Dating Apps",
-  "Membership Clubs",
-  "Beauty/Personal Care",
-  "Health/Wellness",
-  "Financial Services",
-  "E-commerce",
-  "Telecom/Mobile",
-  "Internet",
-  "Utilities",
-  "Insurance",
-  "Other"
-];
-
-// Subscription cycle options
 export const CYCLE_OPTIONS = [
   { value: "DAILY", label: "Daily" },
   { value: "WEEKLY", label: "Weekly" },
   { value: "MONTHLY", label: "Monthly" },
   { value: "QUARTERLY", label: "Quarterly" },
-  { value: "BIANNUALLY", label: "Every 6 Months" },
   { value: "YEARLY", label: "Yearly" },
 ];
 

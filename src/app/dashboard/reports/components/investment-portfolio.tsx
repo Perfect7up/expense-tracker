@@ -79,7 +79,7 @@ export function InvestmentPortfolio({ data, overview }: InvestmentPortfolioProps
   };
 
   return (
-    <Card className="relative overflow-hidden bg-white/80 backdrop-blur-sm border border-slate-200/50 shadow-xl rounded-xl lg:rounded-2xl group hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300">
+    <Card className="relative overflow-hidden bg-white/80 backdrop-blur-sm border border-slate-200/50 hover:shadow-blue-500/10 transition-all duration-300">
       {/* Background linear accents */}
       <div className="absolute -top-12 -right-12 md:-top-24 md:-right-24 w-24 h-24 md:w-48 md:h-48 bg-blue-100/20 rounded-full blur-2xl md:blur-3xl group-hover:bg-blue-100/30 transition-all duration-500" />
       <div className="absolute -bottom-12 -left-12 md:-bottom-24 md:-left-24 w-24 h-24 md:w-48 md:h-48 bg-emerald-100/20 rounded-full blur-2xl md:blur-3xl group-hover:bg-emerald-100/30 transition-all duration-500" />

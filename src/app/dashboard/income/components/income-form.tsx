@@ -37,8 +37,6 @@ export function IncomeForm({ children, onSuccess }: IncomeFormProps) {
   const { data: categories = [] } = useIncomeCategories();
   const [isOpen, setIsOpen] = useState(false);
 
-  // ✅ FIXED: Removed <IncomeFormType> generic.
-  // Zod now handles the inference of Input (string) vs Output (number) automatically.
   const form = useForm({
     resolver: zodResolver(incomeSchema),
     defaultValues: {

@@ -60,7 +60,6 @@ const iconMap = {
   arrowUp: ArrowUp,
   pieChart: PieChart,
   activity: Activity,
-  // 3. New mappings added here
   shield: Shield,
   creditCard: CreditCard,
 };
@@ -69,7 +68,6 @@ export function StatsGrid({ stats }: { stats: StatCard[] }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       {stats.map((stat, index) => {
-        // Safety check: ensure Icon exists, fallback to Package if missing
         const Icon = iconMap[stat.icon] || Package;
         
         const percentageColor =
